@@ -1,0 +1,106 @@
+<div class="ticket-list-container">
+  <div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <h1>Support Tickets</h1>
+    <span class="badge bg-secondary fs-6">{{ totalCount() }} total</span>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar card p-3 mb-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label for="search" class="form-label">Search</label>
+        <input
+          id="search"
+          type="text"
+          class="form-control"
+          placeholder="Search by title or customer..."
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="onSearch()"
+        />
+      </div>
+      <div class="col-md-3">
+        <label for="statusFilter" class="form-label">Status</label>
+        <select id="statusFilter" class="form-select" [(ngModel)]="statusFilter" (ngModelChange)="onSearch()">
+          <option value="">All Statuses</option>
+          <option *ngFor="let s of statusOptions" [value]="s">{{ getStatusLabel(s) }}</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label for="priorityFilter" class="form-label">Priority</label>
+        <select id="priorityFilter" class="form-select" [(ngModel)]="priorityFilter" (ngModelChange)="onSearch()">
+          <option value="">All Priorities</option>
+          <option *ngFor="let p of priorityOptions" [value]="p">{{ p | titlecase }}</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-primary w-100" (click)="onSearch()">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="text-center py-5">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading tickets...</span>
+    </div>
+  </div>
+
+  <!-- Tickets Table -->
+  <div class="table-responsive" *ngIf="!loading()">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th scope="col">ID</th>
+          <th scope="col">Title</th>
+          <th scope="col">Status</th>
+          <th scope="col">Priority</th>
+          <th scope="col">Customer</th>
+          <th scope="col">Assignee</th>
+          <th scope="col">Sentiment</th>
+          <th scope="col">Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let ticket of tickets()" [routerLink]="['/tickets', ticket.id]" class="cursor-pointer">
+          <td class="text-muted">#{{ ticket.id | slice:0:8 }}</td>
+          <td class="fw-semibold">{{ ticket.title }}</td>
+          <td>
+            <span class="badge" [ngClass]="{
+              'bg-danger': ticket.status === 'open',
+              'bg-primary': ticket.status === 'in_progress',
+              'bg-warning text-dark': ticket.status === 'waiting_on_customer',
+              'bg-success': ticket.status === 'resolved',
+              'bg-secondary': ticket.status === 'closed'
+            }">
+              {{ getStatusLabel(ticket.status) }}
+            </span>
+          </td>
+          <td><app-priority-badge [priority]="ticket.priority" /></td>
+          <td>{{ ticket.customerName }}</td>
+          <td>{{ ticket.assigneeName || 'Unassigned' }}</td>
+          <td><app-sentiment-indicator [sentiment]="ticket.sentiment" /></td>
+          <td class="text-nowrap">{{ ticket.createdAt | timeAgo }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <nav *ngIf="totalPages() > 1" aria-label="Ticket pagination">
+    <ul class="pagination justify-content-center">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <a class="page-link" (click)="onPageChange(currentPage - 1)">Previous</a>
+      </li>
+      <li
+        *ngFor="let p of [].constructor(totalPages()); let i = index"
+        class="page-item"
+        [class.active]="currentPage === i + 1"
+      >
+        <a class="page-link" (click)="onPageChange(i + 1)">{{ i + 1 }}</a>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages()">
+        <a class="page-link" (click)="onPageChange(currentPage + 1)">Next</a>
+      </li>
+    </ul>
+  </nav>
+</div>

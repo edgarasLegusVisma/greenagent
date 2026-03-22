@@ -1,0 +1,46 @@
+<div class="card border-primary mb-4">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <span>AI Smart Reply</span>
+    <button type="button" class="btn-close btn-close-white" (click)="dismiss()" aria-label="Close"></button>
+  </div>
+  <div class="card-body">
+    <!-- Loading State -->
+    <div *ngIf="loading()" class="text-center py-4">
+      <div class="spinner-border text-primary mb-2" role="status"></div>
+      <p class="text-muted">Analyzing ticket context and generating reply...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error() as err" class="alert alert-danger">
+      <p class="mb-2">{{ err }}</p>
+      <button class="btn btn-sm btn-outline-danger" (click)="generateReply()">Retry</button>
+    </div>
+
+    <!-- Generated Reply -->
+    <div *ngIf="!loading() && !error()">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">{{ reasoning }}</small>
+        <span class="badge" [ngClass]="{
+          'bg-success': confidence >= 80,
+          'bg-warning text-dark': confidence >= 50 && confidence < 80,
+          'bg-danger': confidence < 50
+        }">
+          {{ confidence }}% confidence
+        </span>
+      </div>
+
+      <textarea
+        class="form-control mb-3"
+        rows="5"
+        [(ngModel)]="suggestedReply"
+        placeholder="Suggested reply will appear here..."
+      ></textarea>
+
+      <div class="d-flex gap-2 justify-content-end">
+        <button class="btn btn-outline-secondary btn-sm" (click)="generateReply()">Regenerate</button>
+        <button class="btn btn-outline-secondary btn-sm" (click)="dismiss()">Cancel</button>
+        <button class="btn btn-primary btn-sm" (click)="useReply()">Use This Reply</button>
+      </div>
+    </div>
+  </div>
+</div>

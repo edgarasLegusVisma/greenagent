@@ -1,0 +1,21 @@
+{
+  "name": "greenagent",
+  "version": "0.1.0",
+  "description": "Make the invisible cost of multi-agent AI visible. X-ray your LLM workflows.",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "demo": "npx tsx demo/live.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  },
+  "author": "Edgaras Legus — Visma Tech Lithuania",
+  "license": "MIT"
+}
