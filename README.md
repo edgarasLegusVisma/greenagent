@@ -4,13 +4,13 @@
 
 A lightweight TypeScript wrapper that X-rays your LLM workflows — tracking tokens, cost, energy, and carbon per step. See exactly where your compute goes: useful work vs coordination overhead vs waste.
 
-Built for the Visma AI Conference 2026 talk:  
+Built for the Visma AI Conference 2026 talk:
 *"One Prompt Was Bad Enough: Sustainability in the Age of Multi-Agent AI"*
 
 ## Quick Start
 
 ```bash
-npm install
+pnpm install
 ```
 
 ```typescript
@@ -21,17 +21,17 @@ const client = new Anthropic();
 const tracker = new GreenTracker({ budgetLimitUsd: 1.00, maxIterations: 10 });
 
 // Wrap your LLM calls with categories
-tracker.startStep('planning', 'claude-3-5-haiku-20241022');
+tracker.startStep('planning', 'claude-haiku-4-5-20251001');
 const planResponse = await client.messages.create({
-  model: 'claude-3-5-haiku-20241022',
+  model: 'claude-haiku-4-5-20251001',
   max_tokens: 500,
   messages: [{ role: 'user', content: 'Plan the structure for a blog post about AI testing' }],
 });
 tracker.recordStep(planResponse, 'Planning with cheap model');
 
-tracker.startStep('execution', 'claude-sonnet-4-20250514');
+tracker.startStep('execution', 'claude-sonnet-4-6');
 const writeResponse = await client.messages.create({
-  model: 'claude-sonnet-4-20250514',
+  model: 'claude-sonnet-4-6',
   max_tokens: 2000,
   messages: [{ role: 'user', content: 'Write a blog post about AI testing...' }],
 });
@@ -94,7 +94,7 @@ const tracker = new GreenTracker({
 });
 
 try {
-  tracker.startStep('loop', 'sonnet');
+  tracker.startStep('loop', 'claude-sonnet-4-6');
   const response = await client.messages.create(...);
   tracker.recordStep(response);
 } catch (e) {
@@ -109,7 +109,7 @@ try {
 ```typescript
 XRay.compare({
   'Single Prompt':     trackerSingle,
-  'Multi-Agent':       trackerMulti,
+  'Standard Multi-Agent': trackerStandard,
   'Optimized':         trackerOptimized,
 });
 ```
@@ -127,28 +127,33 @@ Supports regional carbon grids: `eu_avg`, `nordics`, `lithuania`, `us_avg`, `uk`
 const tracker = new GreenTracker({ carbonRegion: 'lithuania' });  // 120 gCO₂/kWh
 ```
 
-## Demo
+## Live Demo
 
-Run the simulation (no API key needed):
-```bash
-npx tsx demo/simulate.ts
-```
+The demo runs three approaches to the same task ("Add a KnowledgeBase feature to IntelliDesk")
+and shows the sustainability cost of each. Requires `ANTHROPIC_API_KEY` in a `.env` file.
 
-Run the live demo (requires ANTHROPIC_API_KEY):
 ```bash
-npx tsx demo/live.ts
-```
-
-Run individual approaches:
-```bash
+# 1. Baseline — one well-crafted prompt, no agents (~$0.09, ~50s)
 npx tsx demo/live.ts single
-npx tsx demo/live.ts naive
-npx tsx demo/live.ts optimized
+
+# 2. Standard multi-agent — 8 agents, all Sonnet, realistic orchestration (~$2.83, ~10 min)
+#    Watch the overhead pile up in real time
+npx tsx demo/live.ts standard
+
+# 3. Apply the X-Ray's suggestions — run the optimized version (~$0.27, ~2.5 min)
+#    Same output, 10x cheaper, from architecture changes alone
+npx tsx demo/live.ts apply ./demo/output/standard/xray-report.md
+
+# 4. Compare all three side by side (no API calls — loads saved data)
+npx tsx demo/live.ts compare \
+  ./demo/output/single/tracker-data.json \
+  ./demo/output/standard/tracker-data.json \
+  ./demo/output/optimized/tracker-data.json
 ```
 
 ## Why This Exists
 
-In 2025, we measured the carbon cost of a single AI prompt.  
+In 2025, we measured the carbon cost of a single AI prompt.
 In 2026, a single user action can trigger 20-50 LLM calls behind the scenes.
 
 Multi-agent orchestration is powerful — but most teams have **zero visibility** into where their tokens actually go. GreenAgent makes the invisible visible.

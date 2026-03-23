@@ -3,3 +3,8 @@ dist/
 .env
 demo/output/
 .claude/
+
+# Internal talk prep docs — not for the public repo
+CLAUDE.md
+CONTEXT.md
+TALK_PLAN.md
