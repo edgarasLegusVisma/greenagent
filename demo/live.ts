@@ -14,7 +14,7 @@
  * Usage:
  *   npx tsx demo/live.ts              — run all 3 approaches and compare
  *   npx tsx demo/live.ts single       — approach 1 only
- *   npx tsx demo/live.ts naive        — approach 2 only
+ *   npx tsx demo/live.ts standard     — approach 2 only
  *   npx tsx demo/live.ts optimized    — approach 3 only
  */
 
@@ -128,7 +128,8 @@ const ALL_TOOLS = [
   },
 ];
 
-const WRITE_TOOLS = [ALL_TOOLS[2]]; // write_file only
+const WRITE_TOOLS = [ALL_TOOLS[2]];     // write_file only
+const READ_FILE_ONLY = [READ_TOOLS[1]]; // read_file only (no directory listing)
 
 // Current output subdirectory — set before each approach
 let currentOutputSubdir = '';
@@ -494,17 +495,18 @@ async function runStandardMultiAgent(): Promise<DemoResult> {
     category: 'coordination',
     model: SONNET,
     system:
-      'You are a code reader agent. Based on the implementation plan, ' +
-      'read the relevant existing files to understand the codebase ' +
-      'patterns. Focus on: service structure, interface conventions, ' +
-      'controller patterns, DTO style, and frontend component patterns. ' +
+      'You are a code reader agent. The planner has already mapped the ' +
+      'directory structure — do NOT call list_files. Use read_file only. ' +
+      'Read the specific files identified in the plan to extract code patterns. ' +
+      'Focus on: service structure, interface conventions, controller patterns, ' +
+      'DTO style, and frontend component patterns. ' +
       'Provide detailed code context for downstream agents.',
     userMessage:
       `Implementation plan from planner:\n\n${plan}\n\n` +
-      'Read the relevant existing files identified in the plan. Focus on ' +
-      'understanding patterns for: services, interfaces, controllers, DTOs, ' +
-      'and Angular components. Provide detailed code context.',
-    tools: READ_TOOLS,
+      'The directory structure is already in the plan above. Do NOT explore directories. ' +
+      'Use read_file to read the specific files the planner identified. Focus on ' +
+      'patterns for: services, interfaces, controllers, DTOs, and Angular components.',
+    tools: READ_FILE_ONLY,
     maxTokens: 3000,
     note: 'Read relevant files to build detailed code context',
   });

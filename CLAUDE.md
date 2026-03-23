@@ -18,12 +18,12 @@ Update this file whenever a decision is made, a task is completed, or the plan c
 
 ## Current Status
 
-**Date:** March 22, 2026 — 2 days before talk.
+**Date:** March 23, 2026 — 1 day before talk. **Talk is tomorrow.**
 
 ### Done
 - [x] GreenTracker core (`src/tracker.ts`) — tokens, cost, carbon, budget guardrails, toJSON/fromJSON
 - [x] Carbon estimation (`src/carbon.ts`) — Google/IEA methodology, regional grids
-- [x] Suggestion engine (`src/suggestions.ts`) — 6 pattern detectors
+- [x] Suggestion engine (`src/suggestions.ts`) — 6 pattern detectors, consolidated output (no per-step spam)
 - [x] X-Ray visualizer (`src/xray.ts`) — terminal report, compare, stepLive, reportToMarkdown
 - [x] README.md
 - [x] Agent design docs (`docs/agents/`) — 9 files, filenames match agent names
@@ -36,8 +36,12 @@ Update this file whenever a decision is made, a task is completed, or the plan c
 - [x] **Apply command** — reads X-Ray suggestions, shows fixes, runs optimized
 - [x] **Compare command** — loads saved tracker-data.json files, renders XRay.compare() offline
 - [x] **Cleanup** — removed simulate.ts, renamed agent doc files to match agent names
+- [x] **GitHub repo published** — https://github.com/edgarasLegusVisma/greenagent
+- [x] **Node.js reinstalled** — v24.14.0 LTS (via winget), npx works
+- [x] **Bug fix: suggestions duplication** — `src/suggestions.ts` now consolidates per-category (was firing once per step → 37+ spam suggestions; now 1 per category)
+- [x] **Bug fix: Code Reader re-exploration** — `demo/live.ts` Code Reader now uses `READ_FILE_ONLY` (read_file only, no list_files). Planner output already has the directory tree.
 
-### Verified Demo Results (March 22, 2026)
+### Verified Demo Results (March 22, 2026 run — pre-bug-fix baseline)
 
 | | Single Prompt | Standard Multi-Agent | Optimized Multi-Agent |
 |---|---|---|---|
@@ -51,17 +55,20 @@ Update this file whenever a decision is made, a task is completed, or the plan c
 | **Model** | Sonnet | Sonnet (all agents) | Haiku + Sonnet |
 | **Files** | 5 | 17 | 7 |
 
+**Note:** March 23 run (post-fix, in `demo/output/standard/xray-report.md`) shows 63 steps / $2.80. Standard results may vary run-to-run (~$2.80–$3.00 range). Use saved tracker-data.json for compare command.
+
 **Key demo numbers:**
 - Standard is **10x more expensive** than optimized ($2.83 vs $0.27)
 - Standard is **31x more expensive** than single prompt ($2.83 vs $0.09)
 - Standard: **75% overhead, only 24% useful work** — from realistic architecture patterns
 - Both approaches use Sonnet for execution — the waste comes from architecture, NOT model choice
-- Standard has realistic orchestration: agents pass TEXT output between them, no re-exploring
+- Standard has realistic orchestration: agents pass TEXT output between them, lossy handoffs
 - The waste is structural: lossy handoffs, context accumulation, separate steps that could be combined
 
 ### Still Needed
+- [ ] **Re-run all 3 approaches** to get fresh saved data after the Code Reader fix (steps will drop)
 - [ ] 4–5 slides (title, callback, stats, takeaways, QR code)
-- [ ] GitHub repo publish
+- [ ] Push latest bug fixes to GitHub
 - [ ] Dry run / rehearsal
 
 ---
@@ -79,11 +86,11 @@ greenagent/
 ├── .env                     ← ANTHROPIC_API_KEY (git-ignored)
 ├── .gitignore               ← node_modules, dist, .env
 │
-├── src/                     ← GreenAgent library (DONE — do not modify unless bug)
+├── src/                     ← GreenAgent library
 │   ├── index.ts             ← clean re-exports
 │   ├── tracker.ts           ← GreenTracker: startStep(), recordStep(), guardrails, toJSON/fromJSON
 │   ├── carbon.ts            ← estimateEnergyWh(), estimateCarbonMg(), makeRelatable()
-│   ├── suggestions.ts       ← generateSuggestions(): 6 pattern detectors
+│   ├── suggestions.ts       ← generateSuggestions(): 6 detectors, consolidated per-category (no per-step spam)
 │   └── xray.ts              ← XRay.report(), XRay.compare(), XRay.stepLive(), XRay.reportToMarkdown()
 │
 ├── demo/
