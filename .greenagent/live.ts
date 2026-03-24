@@ -1,21 +1,20 @@
 /**
  * GreenAgent Live Demo — Real Multi-Agent Orchestration
  *
- * Agents implement a NEW FEATURE in a real codebase (IntelliDesk).
+ * Agents implement a NEW FEATURE in a real codebase.
  * They read existing code to understand patterns, then write new files.
  * GreenTracker wraps every LLM call. The X-Ray reveals the "agent tax."
- *
- * Task: Add a KnowledgeBase feature — a service that suggests answers
- * from resolved tickets. Agents generate backend service, interface,
- * DTO, controller endpoint, and frontend component.
  *
  * Requires: ANTHROPIC_API_KEY environment variable (or .env file)
  *
  * Usage:
- *   npx tsx .greenagent/live.ts              — run all 3 approaches and compare
  *   npx tsx .greenagent/live.ts single       — approach 1 only
  *   npx tsx .greenagent/live.ts standard     — approach 2 only
  *   npx tsx .greenagent/live.ts optimized    — approach 3 only
+ *
+ * Flags:
+ *   --task "description"    — what the agents should build (default: IntelliDesk KnowledgeBase)
+ *   --codebase ./path       — target codebase (default: auto-detected)
  */
 
 import 'dotenv/config';
@@ -31,26 +30,58 @@ import { fileURLToPath } from 'url';
 
 const client = new Anthropic();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CODEBASE_DIR = path.resolve(__dirname, '..', 'intellidesk');
 const OUTPUT_DIR = path.resolve(__dirname, 'output');
 
-// Models
-const SONNET = 'claude-sonnet-4-6';
-const HAIKU = 'claude-haiku-4-5-20251001';
+// ── CLI flag parsing ──────────────────────────────────────────────
 
-const TASK =
+function getFlag(name: string): string | undefined {
+  const idx = process.argv.indexOf(`--${name}`);
+  if (idx === -1 || idx + 1 >= process.argv.length) return undefined;
+  return process.argv[idx + 1];
+}
+
+// ── Codebase resolution ───────────────────────────────────────────
+// 1. --codebase flag → use that path
+// 2. ../intellidesk/ exists → conference demo (we're in the greenagent repo)
+// 3. Otherwise → ../ (the project that .greenagent/ lives inside)
+
+function resolveCodebase(): string {
+  const flagPath = getFlag('codebase');
+  if (flagPath) return path.resolve(flagPath);
+
+  const intellideskPath = path.resolve(__dirname, '..', 'intellidesk');
+  if (fs.existsSync(intellideskPath)) return intellideskPath;
+
+  return path.resolve(__dirname, '..');
+}
+
+const CODEBASE_DIR = resolveCodebase();
+
+// ── Task resolution ───────────────────────────────────────────────
+
+const DEFAULT_TASK =
   'Add a KnowledgeBase feature to IntelliDesk — a service that suggests ' +
   'answers from previously resolved tickets. Generate the new backend ' +
   'service, interface, DTO, controller endpoint, and Angular frontend ' +
   'component, following the existing code patterns in the codebase.';
 
-const EXPECTED_FILES =
+const DEFAULT_EXPECTED_FILES =
   'Write these files using write_file:\n' +
   '1. backend/IntelliDesk.Application/Interfaces/IKnowledgeBaseService.cs\n' +
   '2. backend/IntelliDesk.Application/Services/KnowledgeBaseService.cs\n' +
   '3. backend/IntelliDesk.Application/DTOs/KnowledgeBaseSuggestionDto.cs\n' +
   '4. backend/IntelliDesk.API/Controllers/KnowledgeBaseController.cs\n' +
   '5. frontend/src/app/features/knowledge-base/knowledge-base.component.ts';
+
+const TASK = getFlag('task') || DEFAULT_TASK;
+const EXPECTED_FILES = getFlag('task')
+  ? 'Explore the codebase to understand existing patterns, then implement the feature. ' +
+    'Use write_file for each new file you create.'
+  : DEFAULT_EXPECTED_FILES;
+
+// Models
+const SONNET = 'claude-sonnet-4-6';
+const HAIKU = 'claude-haiku-4-5-20251001';
 
 // ─────────────────────────────────────────────────────────────────────
 // ANSI colors
@@ -901,18 +932,22 @@ function runCompare(paths: string[]): void {
 // ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const arg = process.argv[2];
+  // Strip flags (--task, --codebase) from positional args
+  const positional = process.argv.slice(2).filter(
+    (a, i, arr) => !a.startsWith('--') && !(i > 0 && arr[i - 1].startsWith('--'))
+  );
+  const arg = positional[0];
 
   // ── Compare command (no API calls) ──
   if (arg === 'compare') {
-    const paths = process.argv.slice(3);
+    const paths = positional.slice(1);
     runCompare(paths);
     return;
   }
 
   // ── Apply command ──
   if (arg === 'apply') {
-    const reportPath = process.argv[3];
+    const reportPath = positional[1];
     if (!reportPath) {
       console.error('  Usage: npx tsx .greenagent/live.ts apply <path-to-xray-report.md>');
       process.exit(1);
@@ -925,7 +960,7 @@ async function main() {
   // ── Standard commands ──
   XRay.header('GreenAgent X-Ray — Live Demo');
   console.log(`  Task: "${TASK}"`);
-  console.log(`  Codebase: IntelliDesk (${CODEBASE_DIR})`);
+  console.log(`  Codebase: ${CODEBASE_DIR}`);
   console.log();
 
   if (arg === 'single') {

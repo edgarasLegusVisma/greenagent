@@ -151,6 +151,45 @@ npx tsx .greenagent/live.ts compare \
   ./.greenagent/output/optimized/tracker-data.json
 ```
 
+## Add GreenAgent to Your Project
+
+GreenAgent is portable — copy the `.greenagent/` folder into any project to X-ray its agent workflows.
+
+```
+your-project/
+├── src/              ← your code
+├── .greenagent/      ← paste here
+└── package.json
+```
+
+1. Install dependencies:
+```bash
+pnpm install
+```
+
+2. Add your API key:
+```bash
+cp .env.example .env
+# Edit .env with your ANTHROPIC_API_KEY
+```
+
+3. Run the X-Ray on your codebase:
+```bash
+# Standard multi-agent — watch the overhead pile up
+npx tsx .greenagent/live.ts standard --task "Add user authentication to the app"
+
+# Apply the X-Ray's suggestions — run the optimized version
+npx tsx .greenagent/live.ts apply ./.greenagent/output/standard/xray-report.md
+
+# Compare approaches side by side
+npx tsx .greenagent/live.ts compare \
+  ./.greenagent/output/standard/tracker-data.json \
+  ./.greenagent/output/optimized/tracker-data.json
+```
+
+The `--task` flag tells the agents what to build. Without it, the default IntelliDesk demo task runs.
+Use `--codebase ./path` to point at a specific directory if auto-detection doesn't find it.
+
 ## Why This Exists
 
 In 2025, we measured the carbon cost of a single AI prompt.
