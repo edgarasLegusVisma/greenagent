@@ -6,7 +6,11 @@
  * agent names or pattern matching.
  */
 
-import type { GreenTracker } from './tracker.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { fileURLToPath } from 'url';
+import type { GreenTracker, StepClassification } from './tracker.js';
+import { ANALYSIS_MAX_TOKENS } from './config.js';
 
 export interface Suggestion {
   severity: 'high' | 'medium' | 'low';
@@ -17,6 +21,7 @@ export interface Suggestion {
 
 export interface AISuggestionResult {
   suggestions: Suggestion[];
+  classifications: Record<number, StepClassification>;
   analysisTokens: number;
   analysisCostUsd: number;
 }
@@ -29,21 +34,15 @@ export function suggestionIcon(severity: string): string {
 // AI-powered suggestion generation
 // ---------------------------------------------------------------------------
 
-const ANALYSIS_SYSTEM_PROMPT =
-  `You are analyzing a multi-agent AI workflow's X-Ray data — step-by-step telemetry ` +
-  `showing how an LLM-powered system spent its tokens, time, and money.\n\n` +
-  `Your job: identify specific, actionable optimizations. Be a senior engineer reviewing ` +
-  `this workflow — reference actual step numbers, agent names (from the notes), exact ` +
-  `token counts and costs. Suggest architectural changes (combine agents, reduce handoffs, ` +
-  `add early exits), not just model swaps.\n\n` +
-  `Rules:\n` +
-  `- Each suggestion must reference specific steps or agent groups by name/number\n` +
-  `- Include concrete estimated savings in tokens and dollars\n` +
-  `- severity: "high" = saves >20% of total cost, "medium" = structural improvement, "low" = minor\n` +
-  `- Limit to 4-8 suggestions, ordered by impact (highest first)\n` +
-  `- Do NOT suggest things that are already optimized (e.g. if planning uses Haiku, don't suggest switching)\n\n` +
-  `Respond with ONLY a JSON array of suggestion objects. No markdown, no prose, no code fences.\n` +
-  `Each object: { "severity": "high"|"medium"|"low", "title": "...", "detail": "...", "savingsEstimate": "..." }`;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function loadAnalysisPrompt(): string {
+  const promptPath = path.resolve(__dirname, '..', 'prompts', 'analysis.md');
+  if (!fs.existsSync(promptPath)) {
+    throw new Error(`Analysis prompt not found: ${promptPath}`);
+  }
+  return fs.readFileSync(promptPath, 'utf-8').trim();
+}
 
 function buildAnalysisPayload(tracker: GreenTracker): string {
   const steps = tracker.steps.map(s => ({
@@ -94,8 +93,8 @@ export async function generateAISuggestions(
 
     const response = await client.messages.create({
       model,
-      max_tokens: 2000,
-      system: ANALYSIS_SYSTEM_PROMPT,
+      max_tokens: ANALYSIS_MAX_TOKENS,
+      system: loadAnalysisPrompt(),
       messages: [
         {
           role: 'user',
@@ -116,15 +115,30 @@ export async function generateAISuggestions(
     // Strip markdown code fences if present
     const cleaned = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```\s*$/m, '').trim();
     const parsed = JSON.parse(cleaned);
-    const suggestions: Suggestion[] = (Array.isArray(parsed) ? parsed : []).map((s: any) => ({
+
+    // Handle both formats: { classifications, suggestions } or plain array
+    const rawSuggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions || []);
+    const suggestions: Suggestion[] = rawSuggestions.map((s: any) => ({
       severity: ['high', 'medium', 'low'].includes(s.severity) ? s.severity : 'medium',
       title: String(s.title || ''),
       detail: String(s.detail || ''),
       savingsEstimate: String(s.savingsEstimate || ''),
     }));
 
+    // Parse step classifications from AI
+    const validClassifications = new Set(['useful_work', 'overhead', 'potential_waste']);
+    const classifications: Record<number, StepClassification> = {};
+    if (parsed.classifications && typeof parsed.classifications === 'object') {
+      for (const [stepNum, cls] of Object.entries(parsed.classifications)) {
+        if (validClassifications.has(cls as string)) {
+          classifications[Number(stepNum)] = cls as StepClassification;
+        }
+      }
+    }
+
     return {
       suggestions,
+      classifications,
       analysisTokens: step.totalTokens,
       analysisCostUsd: step.costUsd,
     };
@@ -132,6 +146,7 @@ export async function generateAISuggestions(
     console.error(`  ⚠️  AI suggestion analysis failed: ${(err as Error).message}`);
     return {
       suggestions: [],
+      classifications: {},
       analysisTokens: 0,
       analysisCostUsd: 0,
     };

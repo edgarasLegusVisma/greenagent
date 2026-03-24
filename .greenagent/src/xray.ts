@@ -29,7 +29,7 @@ const CLASS_COLORS: Record<StepClassification, string> = {
   overhead:        YELLOW,
   potential_waste:  RED,
   analysis:        CYAN,
-  other:           GRAY,
+  unclassified:    GRAY,
 };
 
 const CLASS_BAR_COLORS: Record<StepClassification, string> = {
@@ -37,7 +37,7 @@ const CLASS_BAR_COLORS: Record<StepClassification, string> = {
   overhead:        BAR_YELLOW,
   potential_waste:  BAR_RED,
   analysis:        BAR_GRAY,
-  other:           BAR_GRAY,
+  unclassified:    BAR_GRAY,
 };
 
 const CLASS_LABELS: Record<StepClassification, string> = {
@@ -45,7 +45,7 @@ const CLASS_LABELS: Record<StepClassification, string> = {
   overhead:        'Overhead',
   potential_waste:  'Potential Waste',
   analysis:        'Diagnosis',
-  other:           'Other',
+  unclassified:    'Unclassified',
 };
 
 const STEP_ICONS: Record<StepClassification, string> = {
@@ -53,7 +53,7 @@ const STEP_ICONS: Record<StepClassification, string> = {
   overhead:       '⚙️ ',
   potential_waste: '⚠️ ',
   analysis:       '🔬',
-  other:          '◽',
+  unclassified:   '◽',
 };
 
 function bar(value: number, maxValue: number, width: number = 40, color: string = BAR_GREEN): string {
@@ -139,7 +139,7 @@ export class XRay {
     const totalTokens = Object.values(tokenCls).reduce((a, b) => a + b, 0);
     const maxTokens = Math.max(...Object.values(tokenCls)) || 1;
 
-    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'other'] as StepClassification[]) {
+    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'unclassified'] as StepClassification[]) {
       const tokens = tokenCls[cls] || 0;
       if (tokens === 0) continue;
       const color = CLASS_COLORS[cls];
@@ -162,7 +162,7 @@ export class XRay {
     const totalCost = Object.values(costCls).reduce((a, b) => a + b, 0);
     const maxCost = Math.max(...Object.values(costCls)) || 1;
 
-    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'other'] as StepClassification[]) {
+    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'unclassified'] as StepClassification[]) {
       const cost = costCls[cls] || 0;
       if (cost === 0) continue;
       const color = CLASS_COLORS[cls];
@@ -352,7 +352,7 @@ export class XRay {
     lines.push('');
     lines.push(`| Classification | Tokens | % |`);
     lines.push(`|----------------|--------|---|`);
-    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'other'] as const) {
+    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'unclassified'] as const) {
       const t = tokenCls[cls] || 0;
       if (t === 0) continue;
       const p = totalTokens > 0 ? Math.round((t / totalTokens) * 100) : 0;
@@ -368,7 +368,7 @@ export class XRay {
     lines.push('');
     lines.push(`| Classification | Cost | % |`);
     lines.push(`|----------------|------|---|`);
-    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'other'] as const) {
+    for (const cls of ['useful_work', 'overhead', 'potential_waste', 'analysis', 'unclassified'] as const) {
       const c = costCls[cls] || 0;
       if (c === 0) continue;
       const p = totalCost > 0 ? Math.round((c / totalCost) * 100) : 0;
@@ -382,7 +382,7 @@ export class XRay {
     lines.push(`| Step | Category | Tokens | Cost | Time | Model | Note |`);
     lines.push(`|------|----------|--------|------|------|-------|------|`);
     for (const s of steps) {
-      const icon = { useful_work: '✅', overhead: '⚙️', potential_waste: '⚠️', analysis: '🔬', other: '◽' }[s.classification];
+      const icon = { useful_work: '✅', overhead: '⚙️', potential_waste: '⚠️', analysis: '🔬', unclassified: '◽' }[s.classification];
       lines.push(`| ${icon} ${s.stepNumber} | ${s.category} | ${s.totalTokens.toLocaleString()} | $${s.costUsd.toFixed(4)} | ${s.latencyS.toFixed(1)}s | ${s.model} | ${s.note} |`);
     }
     lines.push('');

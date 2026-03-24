@@ -11,8 +11,15 @@ export type { Suggestion, AISuggestionResult } from './suggestions.js';
 // Infrastructure
 export { RESET, BOLD, DIM, CYAN_FG, GREEN_FG, YELLOW_FG, MAGENTA_FG, GRAY_FG, WHITE_FG } from './colors.js';
 export { READ_TOOLS, WRITE_TOOLS, READ_FILE_ONLY, ALL_TOOLS, setToolContext, setCurrentSubdir, getOutputDir, executeTool } from './tools.js';
-export { runAgent, MAX_TOOL_ROUNDS } from './runner.js';
+export { runAgent } from './runner.js';
 export type { AgentOptions } from './runner.js';
-export { runDynamicPipeline, PIPELINE_OPTIMIZER_PROMPT } from './pipeline.js';
+export { runDynamicPipeline } from './pipeline.js';
 export type { AgentConfig, PipelineConfig, DemoResult } from './pipeline.js';
-export { cleanOutputDir, listOutputFiles, printGeneratedFiles } from './helpers.js';
+export { cleanOutputDir, listOutputFiles, printGeneratedFiles, analyzeAndReport, saveResults, readAgentConfigs, loadPrompt } from './helpers.js';
+export { SONNET, HAIKU, DEFAULT_TASK, DEFAULT_CARBON_REGION, MAX_TOOL_ROUNDS, SINGLE_PROMPT_MAX_ROUNDS, PIPELINE_MIN_ITERATIONS, PIPELINE_DEFAULT_BUDGET, OPTIMIZER_MAX_TOKENS, ANALYSIS_MAX_TOKENS } from './config.js';
+
+// Commands
+export { runSinglePrompt } from './commands/single.js';
+export { runStandard, generatePipelineConfig } from './commands/standard.js';
+export { runApply } from './commands/apply.js';
+export { runCompare } from './commands/compare.js';

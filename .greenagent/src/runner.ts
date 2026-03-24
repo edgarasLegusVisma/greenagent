@@ -6,8 +6,7 @@ import type { GreenTracker } from './tracker.js';
 import { XRay } from './xray.js';
 import { executeTool } from './tools.js';
 import { RESET, BOLD, DIM, MAGENTA_FG, GRAY_FG, YELLOW_FG } from './colors.js';
-
-export const MAX_TOOL_ROUNDS = 20;
+import { MAX_TOOL_ROUNDS } from './config.js';
 
 export interface AgentOptions {
   agentName: string;

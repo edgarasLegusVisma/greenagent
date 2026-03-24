@@ -7,6 +7,7 @@ import { runAgent } from './runner.js';
 import { READ_TOOLS, WRITE_TOOLS, setCurrentSubdir } from './tools.js';
 import { cleanOutputDir, listOutputFiles, printGeneratedFiles } from './helpers.js';
 import { RESET, BOLD, YELLOW_FG } from './colors.js';
+import { DEFAULT_CARBON_REGION, PIPELINE_MIN_ITERATIONS, PIPELINE_DEFAULT_BUDGET } from './config.js';
 
 export interface AgentConfig {
   name: string;
@@ -32,53 +33,6 @@ export interface DemoResult {
   output: string;
 }
 
-export const PIPELINE_OPTIMIZER_PROMPT =
-  `You are an AI multi-agent pipeline optimizer. You receive:\n` +
-  `1. X-Ray analysis with specific optimization suggestions\n` +
-  `2. Current agent system prompts (the md files)\n` +
-  `3. The current pipeline structure (which agents run, in what order, with what tools and models)\n\n` +
-  `Your job: produce an optimized pipeline configuration that addresses the suggestions.\n\n` +
-  `You can:\n` +
-  `- Remove agents that are redundant (e.g. remove Quality Gate if Code Reviewer already validates)\n` +
-  `- Combine agents (e.g. merge Backend + Frontend into Full-Stack Implementer)\n` +
-  `- Change models (e.g. use Haiku for planning, keep Sonnet for execution)\n` +
-  `- Reduce maxToolRounds (e.g. cap planner at 5 rounds instead of 20)\n` +
-  `- Rewrite agent prompts to be more focused and efficient\n` +
-  `- Add constraints to prompts (e.g. "output a summary, not raw file contents")\n` +
-  `- Change tool access (e.g. give reader read_file only, not list_files)\n` +
-  `- Add budget guardrails\n\n` +
-  `Respond with ONLY a JSON object (no markdown, no code fences):\n` +
-  `{\n` +
-  `  "budgetLimitUsd": 1.0,\n` +
-  `  "maxIterations": 30,\n` +
-  `  "agents": [\n` +
-  `    {\n` +
-  `      "name": "AGENT NAME",\n` +
-  `      "icon": "emoji",\n` +
-  `      "category": "planning|coordination|routing|execution|reflection|validation",\n` +
-  `      "model": "haiku|sonnet",\n` +
-  `      "tools": ["list_files", "read_file", "write_file"],\n` +
-  `      "maxToolRounds": 5,\n` +
-  `      "maxTokens": 500,\n` +
-  `      "prompt": "The full system prompt for this agent...",\n` +
-  `      "inputFrom": ["PREVIOUS AGENT NAME"],\n` +
-  `      "note": "Short description for the X-Ray step log"\n` +
-  `    }\n` +
-  `  ]\n` +
-  `}\n\n` +
-  `The "inputFrom" array specifies which previous agents' outputs get passed as context. ` +
-  `The orchestrator concatenates them into the user message automatically.\n\n` +
-  `Model values: "haiku" for cheap/fast tasks, "sonnet" for quality-critical tasks.\n` +
-  `Tool values: "list_files", "read_file", "write_file" (or empty array for no tools).\n` +
-  `Category values: "planning", "coordination", "routing", "execution", "reflection", "validation".\n\n` +
-  `IMPORTANT constraints for fix/rewrite agents:\n` +
-  `- A fix agent receives the reviewer's fix list + implementation summaries, but NOT the original file contents.\n` +
-  `- Its prompt MUST instruct it to only rewrite files that have actual issues (not all files).\n` +
-  `- Its prompt MUST instruct it to include ALL original code when rewriting a file — not just the fix. ` +
-  `The agent must reproduce the complete file with the fix applied, since write_file overwrites the entire file.\n` +
-  `- If the reviewer signals NO_ISSUES_FOUND or APPROVED, the fix agent should confirm and exit without writing.\n` +
-  `- To give the fix agent the original file contents, include the implementation agents in its inputFrom.`;
-
 export async function runDynamicPipeline(
   config: PipelineConfig,
   task: string,
@@ -91,9 +45,9 @@ export async function runDynamicPipeline(
   cleanOutputDir(outputSubdir);
 
   const tracker = new GreenTracker({
-    carbonRegion: 'eu_avg',
-    budgetLimitUsd: config.budgetLimitUsd ?? 2.0,
-    maxIterations: Math.max(config.maxIterations ?? 50, 50), // floor at 50 steps
+    carbonRegion: DEFAULT_CARBON_REGION,
+    budgetLimitUsd: config.budgetLimitUsd ?? PIPELINE_DEFAULT_BUDGET,
+    maxIterations: Math.max(config.maxIterations ?? PIPELINE_MIN_ITERATIONS, PIPELINE_MIN_ITERATIONS),
   });
 
   const agentOutputs: Record<string, string> = {};

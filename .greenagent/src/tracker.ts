@@ -36,13 +36,12 @@ const PRICING: Record<string, { input: number; output: number }> = {
   'opus':   { input: 5.00,  output: 25.00 },
 };
 
-// Step classifications
-const CATEGORY_USEFUL = new Set(['execution', 'final_output']);
-const CATEGORY_OVERHEAD = new Set(['planning', 'routing', 'coordination', 'delegation']);
-const CATEGORY_WASTE = new Set(['reflection', 'retry', 'validation', 'loop']);
-const CATEGORY_META = new Set(['analysis']);
+// Step classifications — assigned by AI analysis after the workflow completes.
+// Before analysis, steps are 'unclassified'. The AI sees actual behavior
+// (token counts, context growth, what each step produced) and classifies
+// based on what happened, not what the category label says.
 
-export type StepClassification = 'useful_work' | 'overhead' | 'potential_waste' | 'analysis' | 'other';
+export type StepClassification = 'useful_work' | 'overhead' | 'potential_waste' | 'analysis' | 'unclassified';
 
 export interface Step {
   category: string;
@@ -206,7 +205,7 @@ export class GreenTracker {
 
   tokensByClassification(): Record<StepClassification, number> {
     const result: Record<StepClassification, number> = {
-      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, other: 0,
+      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, unclassified: 0,
     };
     for (const s of this.steps) {
       result[s.classification] += s.totalTokens;
@@ -216,7 +215,7 @@ export class GreenTracker {
 
   costByClassification(): Record<StepClassification, number> {
     const result: Record<StepClassification, number> = {
-      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, other: 0,
+      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, unclassified: 0,
     };
     for (const s of this.steps) {
       result[s.classification] += s.costUsd;
@@ -237,11 +236,22 @@ export class GreenTracker {
   }
 
   /**
-   * Inject AI-generated suggestions (overrides static engine).
+   * Inject AI-generated suggestions and optional step reclassifications.
    */
-  setSuggestions(suggestions: Suggestion[], meta?: { tokens: number; costUsd: number }): void {
+  setSuggestions(
+    suggestions: Suggestion[],
+    meta?: { tokens: number; costUsd: number },
+    classifications?: Record<number, StepClassification>,
+  ): void {
     this._overrideSuggestions = suggestions;
     this._analysisMeta = meta ?? null;
+
+    if (classifications) {
+      for (const step of this.steps) {
+        const cls = classifications[step.stepNumber];
+        if (cls) step.classification = cls;
+      }
+    }
   }
 
   get analysisMeta(): { tokens: number; costUsd: number } | null {
@@ -293,11 +303,11 @@ export class GreenTracker {
   // ------------------------------------------------------------------
 
   private _classify(category: string): StepClassification {
-    if (CATEGORY_USEFUL.has(category)) return 'useful_work';
-    if (CATEGORY_OVERHEAD.has(category)) return 'overhead';
-    if (CATEGORY_WASTE.has(category)) return 'potential_waste';
-    if (CATEGORY_META.has(category)) return 'analysis';
-    return 'other';
+    // The analysis step is always meta — classified immediately.
+    // All other steps start as 'unclassified' until the AI analysis
+    // sees actual behavior and reclassifies them.
+    if (category === 'analysis') return 'analysis';
+    return 'unclassified';
   }
 
   private _calculateCost(model: string, inputTokens: number, outputTokens: number): number {
