@@ -22,8 +22,11 @@ Rules:
 - Each suggestion must reference specific steps or agent groups by name/number
 - Include concrete estimated savings in tokens and dollars
 - severity: "high" = saves >20% of total cost, "medium" = structural improvement, "low" = minor
-- Limit to 4-8 suggestions, ordered by impact (highest first)
+- Limit to 5-6 suggestions maximum, ordered by impact (highest first)
+- Keep each "detail" field to 2-3 sentences — be precise, not verbose
+- Keep each "title" to under 80 characters
 - Do NOT suggest things that are already optimized (e.g. if planning uses Haiku, don't suggest switching)
+- Do NOT repeat suggestions — each suggestion must be unique
 
 Respond with ONLY a JSON object (no markdown, no prose, no code fences):
 {

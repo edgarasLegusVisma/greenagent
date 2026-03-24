@@ -118,12 +118,20 @@ export async function generateAISuggestions(
 
     // Handle both formats: { classifications, suggestions } or plain array
     const rawSuggestions = Array.isArray(parsed) ? parsed : (parsed.suggestions || []);
-    const suggestions: Suggestion[] = rawSuggestions.map((s: any) => ({
-      severity: ['high', 'medium', 'low'].includes(s.severity) ? s.severity : 'medium',
-      title: String(s.title || ''),
-      detail: String(s.detail || ''),
-      savingsEstimate: String(s.savingsEstimate || ''),
-    }));
+    const seenTitles = new Set<string>();
+    const suggestions: Suggestion[] = rawSuggestions
+      .map((s: any) => ({
+        severity: ['high', 'medium', 'low'].includes(s.severity) ? s.severity : 'medium',
+        title: String(s.title || ''),
+        detail: String(s.detail || ''),
+        savingsEstimate: String(s.savingsEstimate || ''),
+      }))
+      .filter((s: Suggestion) => {
+        // Deduplicate — AI sometimes repeats suggestions when hitting token limits
+        if (seenTitles.has(s.title)) return false;
+        seenTitles.add(s.title);
+        return s.title.length > 0;
+      });
 
     // Parse step classifications from AI
     const validClassifications = new Set(['useful_work', 'overhead', 'potential_waste']);

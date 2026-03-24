@@ -246,11 +246,15 @@ export class GreenTracker {
     this._overrideSuggestions = suggestions;
     this._analysisMeta = meta ?? null;
 
-    if (classifications) {
+    if (classifications && Object.keys(classifications).length > 0) {
       for (const step of this.steps) {
         const cls = classifications[step.stepNumber];
         if (cls) step.classification = cls;
       }
+    } else {
+      // Fallback: basic category-based classification when AI didn't provide one.
+      // Not as accurate as AI classification, but better than 100% "Unclassified".
+      this._applyFallbackClassifications();
     }
   }
 
@@ -308,6 +312,29 @@ export class GreenTracker {
     // sees actual behavior and reclassifies them.
     if (category === 'analysis') return 'analysis';
     return 'unclassified';
+  }
+
+  private _applyFallbackClassifications(): void {
+    // Basic heuristic when AI classification is unavailable.
+    // Uses the category label as a rough guide — not as accurate as AI
+    // but far better than showing 100% "Unclassified" in the report.
+    const categoryMap: Record<string, StepClassification> = {
+      execution: 'useful_work',
+      final_output: 'useful_work',
+      planning: 'overhead',
+      routing: 'overhead',
+      coordination: 'overhead',
+      delegation: 'overhead',
+      reflection: 'potential_waste',
+      retry: 'potential_waste',
+      validation: 'potential_waste',
+      loop: 'potential_waste',
+    };
+    for (const step of this.steps) {
+      if (step.classification === 'unclassified') {
+        step.classification = categoryMap[step.category] ?? 'unclassified';
+      }
+    }
   }
 
   private _calculateCost(model: string, inputTokens: number, outputTokens: number): number {

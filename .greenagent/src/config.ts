@@ -15,8 +15,8 @@ export const DEFAULT_CARBON_REGION = 'eu_avg';
 
 // ── Pipeline guardrails ───────────────────────────────────────────
 export const PIPELINE_MIN_ITERATIONS = 50;   // floor — AI can't set lower
-export const PIPELINE_DEFAULT_BUDGET = 2.0;  // USD — default if AI doesn't set one
+export const PIPELINE_DEFAULT_BUDGET = 10.0; // USD — default if AI doesn't set one
 
 // ── GreenAgent optimizer ──────────────────────────────────────────
 export const OPTIMIZER_MAX_TOKENS = 4000;    // max response for pipeline generation
-export const ANALYSIS_MAX_TOKENS = 2000;     // max response for X-Ray analysis
+export const ANALYSIS_MAX_TOKENS = 6000;     // max response for X-Ray analysis (classifications + suggestions for large pipelines)

@@ -27,7 +27,8 @@ export async function runAgent(
   client: any,
 ): Promise<string> {
   const { agentName, agentIcon, category, model, system, maxTokens = 4096, note } = options;
-  const maxRounds = options.maxToolRounds ?? MAX_TOOL_ROUNDS;
+  // Ensure at least 1 round — agents with no tools still need one API call
+  const maxRounds = Math.max(options.maxToolRounds ?? MAX_TOOL_ROUNDS, 1);
   const messages: any[] = [{ role: 'user', content: options.userMessage }];
 
   // Print agent header
@@ -67,6 +68,8 @@ export async function runAgent(
 
     const response = await client.messages.create(params);
     clearInterval(timer);
+    // Small delay to let any pending timer tick flush before we clear the line
+    await new Promise(r => setTimeout(r, 50));
     const step = tracker.recordStep(
       response,
       round === 1 ? note : `${note} (processing tool results)`,

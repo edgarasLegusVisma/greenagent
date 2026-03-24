@@ -44,7 +44,7 @@ SHARED CONSTRAINTS (both modes):
 
 Respond with ONLY a JSON object (no markdown, no prose, no code fences):
 {
-  "budgetLimitUsd": 5.0,
+  "budgetLimitUsd": 10.0,
   "maxIterations": 100,
   "agents": [
     {
@@ -63,3 +63,8 @@ Respond with ONLY a JSON object (no markdown, no prose, no code fences):
 }
 
 The "inputFrom" array specifies which previous agents' outputs get concatenated into the user message. The orchestrator handles this automatically — you just declare the data flow.
+
+Important:
+- maxToolRounds must be at least 1 — even agents with no tools need one API call to produce output
+- For agents with no tools, set maxToolRounds to 1
+- For agents with tools, set maxToolRounds based on expected work (planners: 20, readers: 10, writers: 15)

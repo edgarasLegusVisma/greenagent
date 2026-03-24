@@ -4,6 +4,9 @@ dist/
 .greenagent/output/
 .claude/
 
+# Generated pipeline config (recreated on first run)
+intellidesk/pipeline.json
+
 # Internal talk prep docs — not for the public repo
 CLAUDE.md
 CONTEXT.md
