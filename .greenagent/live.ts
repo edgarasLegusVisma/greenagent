@@ -19,7 +19,7 @@
 
 import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
-import { GreenTracker, XRay } from './src/index.js';
+import { GreenTracker, XRay, generateAISuggestions } from './src/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -834,6 +834,25 @@ async function runOptimizedMultiAgent(): Promise<DemoResult> {
 // Save results — xray-report.md + tracker-data.json
 // ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Run AI analysis on a completed tracker, inject suggestions, then report + save.
+ */
+async function analyzeAndReport(
+  tracker: GreenTracker,
+  title: string,
+  subdir: string,
+  label: string,
+): Promise<void> {
+  console.log(`\n  ${CYAN_FG}🔬 Running AI-powered suggestion analysis...${RESET}`);
+  const result = await generateAISuggestions(tracker, client, SONNET);
+  tracker.setSuggestions(result.suggestions, {
+    tokens: result.analysisTokens,
+    costUsd: result.analysisCostUsd,
+  });
+  XRay.report(tracker, title);
+  saveResults(subdir, label, tracker);
+}
+
 function saveResults(subdir: string, label: string, tracker: GreenTracker): void {
   const dir = path.join(OUTPUT_DIR, subdir);
   fs.mkdirSync(dir, { recursive: true });
@@ -896,8 +915,7 @@ async function runApply(reportPath: string): Promise<void> {
   console.log(`  ${CYAN_FG}${BOLD}🚀 Running optimized workflow with fixes applied...${RESET}`);
 
   const { tracker } = await runOptimizedMultiAgent();
-  XRay.report(tracker, 'Optimized Multi-Agent (fixes applied)');
-  saveResults('optimized', 'Optimized Multi-Agent', tracker);
+  await analyzeAndReport(tracker, 'Optimized Multi-Agent (fixes applied)', 'optimized', 'Optimized Multi-Agent');
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -965,22 +983,19 @@ async function main() {
 
   if (arg === 'single') {
     const { tracker } = await runSinglePrompt();
-    XRay.report(tracker, 'Approach 1: Single Prompt');
-    saveResults('single', 'Single Prompt', tracker);
+    await analyzeAndReport(tracker, 'Approach 1: Single Prompt', 'single', 'Single Prompt');
     return;
   }
 
   if (arg === 'standard') {
     const { tracker } = await runStandardMultiAgent();
-    XRay.report(tracker, 'Approach 2: Standard Multi-Agent');
-    saveResults('standard', 'Standard Multi-Agent', tracker);
+    await analyzeAndReport(tracker, 'Approach 2: Standard Multi-Agent', 'standard', 'Standard Multi-Agent');
     return;
   }
 
   if (arg === 'optimized') {
     const { tracker } = await runOptimizedMultiAgent();
-    XRay.report(tracker, 'Approach 3: Optimized Multi-Agent');
-    saveResults('optimized', 'Optimized Multi-Agent', tracker);
+    await analyzeAndReport(tracker, 'Approach 3: Optimized Multi-Agent', 'optimized', 'Optimized Multi-Agent');
     return;
   }
 
@@ -993,18 +1008,15 @@ async function main() {
   console.log();
   const optimized = await runOptimizedMultiAgent();
 
-  // Individual reports
+  // Individual reports (AI analysis for each)
   console.log('\n' + '🔵 '.repeat(20));
-  XRay.report(single.tracker, 'Approach 1: Single Prompt');
-  saveResults('single', 'Single Prompt', single.tracker);
+  await analyzeAndReport(single.tracker, 'Approach 1: Single Prompt', 'single', 'Single Prompt');
 
   console.log('\n' + '🟡 '.repeat(20));
-  XRay.report(standard.tracker, 'Approach 2: Standard Multi-Agent');
-  saveResults('standard', 'Standard Multi-Agent', standard.tracker);
+  await analyzeAndReport(standard.tracker, 'Approach 2: Standard Multi-Agent', 'standard', 'Standard Multi-Agent');
 
   console.log('\n' + '🟢 '.repeat(20));
-  XRay.report(optimized.tracker, 'Approach 3: Optimized Multi-Agent');
-  saveResults('optimized', 'Optimized Multi-Agent', optimized.tracker);
+  await analyzeAndReport(optimized.tracker, 'Approach 3: Optimized Multi-Agent', 'optimized', 'Optimized Multi-Agent');
 
   // The finale — side-by-side comparison
   XRay.compare(

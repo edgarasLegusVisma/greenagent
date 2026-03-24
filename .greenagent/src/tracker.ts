@@ -83,6 +83,8 @@ export class GreenTracker {
   private _stepCounter = 0;
   private _killed = false;
   private _killReason = '';
+  private _overrideSuggestions: Suggestion[] | null = null;
+  private _analysisMeta: { tokens: number; costUsd: number } | null = null;
 
   constructor(options: TrackerOptions = {}) {
     this.budgetLimitUsd = options.budgetLimitUsd ?? null;
@@ -230,7 +232,19 @@ export class GreenTracker {
   }
 
   getSuggestions(): Suggestion[] {
-    return generateSuggestions(this);
+    return this._overrideSuggestions ?? generateSuggestions(this);
+  }
+
+  /**
+   * Inject AI-generated suggestions (overrides static engine).
+   */
+  setSuggestions(suggestions: Suggestion[], meta?: { tokens: number; costUsd: number }): void {
+    this._overrideSuggestions = suggestions;
+    this._analysisMeta = meta ?? null;
+  }
+
+  get analysisMeta(): { tokens: number; costUsd: number } | null {
+    return this._analysisMeta;
   }
 
   reset(): void {
