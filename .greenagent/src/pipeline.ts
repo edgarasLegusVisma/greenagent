@@ -70,7 +70,14 @@ export const PIPELINE_OPTIMIZER_PROMPT =
   `The orchestrator concatenates them into the user message automatically.\n\n` +
   `Model values: "haiku" for cheap/fast tasks, "sonnet" for quality-critical tasks.\n` +
   `Tool values: "list_files", "read_file", "write_file" (or empty array for no tools).\n` +
-  `Category values: "planning", "coordination", "routing", "execution", "reflection", "validation".`;
+  `Category values: "planning", "coordination", "routing", "execution", "reflection", "validation".\n\n` +
+  `IMPORTANT constraints for fix/rewrite agents:\n` +
+  `- A fix agent receives the reviewer's fix list + implementation summaries, but NOT the original file contents.\n` +
+  `- Its prompt MUST instruct it to only rewrite files that have actual issues (not all files).\n` +
+  `- Its prompt MUST instruct it to include ALL original code when rewriting a file — not just the fix. ` +
+  `The agent must reproduce the complete file with the fix applied, since write_file overwrites the entire file.\n` +
+  `- If the reviewer signals NO_ISSUES_FOUND or APPROVED, the fix agent should confirm and exit without writing.\n` +
+  `- To give the fix agent the original file contents, include the implementation agents in its inputFrom.`;
 
 export async function runDynamicPipeline(
   config: PipelineConfig,
