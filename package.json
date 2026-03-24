@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "description": "Make the invisible cost of multi-agent AI visible. X-ray your LLM workflows.",
   "type": "module",
-  "main": "src/index.ts",
+  "main": ".greenagent/src/index.ts",
   "scripts": {
-    "demo": "npx tsx demo/live.ts"
+    "demo": "npx tsx .greenagent/live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",

@@ -1,7 +1,7 @@
 # Orchestrator
 
 ## Role
-Not a single agent -- it's the pipeline logic that chains agents together. In `demo/live.ts`, the orchestrator is the approach function itself (`runStandardMultiAgent()` or `runOptimizedMultiAgent()`). Each agent is invoked via `runAgent()`, receives TEXT OUTPUT from previous agents as input, and produces TEXT OUTPUT for the next agents.
+Not a single agent -- it's the pipeline logic that chains agents together. In `.greenagent/live.ts`, the orchestrator is the approach function itself (`runStandardMultiAgent()` or `runOptimizedMultiAgent()`). Each agent is invoked via `runAgent()`, receives TEXT OUTPUT from previous agents as input, and produces TEXT OUTPUT for the next agents.
 
 ## Core Design Principle: Text Handoffs
 

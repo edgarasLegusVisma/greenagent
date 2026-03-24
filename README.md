@@ -15,7 +15,7 @@ pnpm install
 
 ```typescript
 import Anthropic from '@anthropic-ai/sdk';
-import { GreenTracker, XRay } from './src/index.js';
+import { GreenTracker, XRay } from './.greenagent/src/index.js';
 
 const client = new Anthropic();
 const tracker = new GreenTracker({ budgetLimitUsd: 1.00, maxIterations: 10 });
@@ -134,21 +134,21 @@ and shows the sustainability cost of each. Requires `ANTHROPIC_API_KEY` in a `.e
 
 ```bash
 # 1. Baseline — one well-crafted prompt, no agents (~$0.09, ~50s)
-npx tsx demo/live.ts single
+npx tsx .greenagent/live.ts single
 
 # 2. Standard multi-agent — 8 agents, all Sonnet, realistic orchestration (~$2.83, ~10 min)
 #    Watch the overhead pile up in real time
-npx tsx demo/live.ts standard
+npx tsx .greenagent/live.ts standard
 
 # 3. Apply the X-Ray's suggestions — run the optimized version (~$0.27, ~2.5 min)
 #    Same output, 10x cheaper, from architecture changes alone
-npx tsx demo/live.ts apply ./demo/output/standard/xray-report.md
+npx tsx .greenagent/live.ts apply ./.greenagent/output/standard/xray-report.md
 
 # 4. Compare all three side by side (no API calls — loads saved data)
-npx tsx demo/live.ts compare \
-  ./demo/output/single/tracker-data.json \
-  ./demo/output/standard/tracker-data.json \
-  ./demo/output/optimized/tracker-data.json
+npx tsx .greenagent/live.ts compare \
+  ./.greenagent/output/single/tracker-data.json \
+  ./.greenagent/output/standard/tracker-data.json \
+  ./.greenagent/output/optimized/tracker-data.json
 ```
 
 ## Why This Exists

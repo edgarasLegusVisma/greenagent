@@ -12,15 +12,15 @@
  * Requires: ANTHROPIC_API_KEY environment variable (or .env file)
  *
  * Usage:
- *   npx tsx demo/live.ts              — run all 3 approaches and compare
- *   npx tsx demo/live.ts single       — approach 1 only
- *   npx tsx demo/live.ts standard     — approach 2 only
- *   npx tsx demo/live.ts optimized    — approach 3 only
+ *   npx tsx .greenagent/live.ts              — run all 3 approaches and compare
+ *   npx tsx .greenagent/live.ts single       — approach 1 only
+ *   npx tsx .greenagent/live.ts standard     — approach 2 only
+ *   npx tsx .greenagent/live.ts optimized    — approach 3 only
  */
 
 import 'dotenv/config';
 import Anthropic from '@anthropic-ai/sdk';
-import { GreenTracker, XRay } from '../src/index.js';
+import { GreenTracker, XRay } from './src/index.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -31,7 +31,7 @@ import { fileURLToPath } from 'url';
 
 const client = new Anthropic();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CODEBASE_DIR = path.resolve(__dirname, 'intellidesk');
+const CODEBASE_DIR = path.resolve(__dirname, '..', 'intellidesk');
 const OUTPUT_DIR = path.resolve(__dirname, 'output');
 
 // Models
@@ -875,7 +875,7 @@ async function runApply(reportPath: string): Promise<void> {
 
 function runCompare(paths: string[]): void {
   if (paths.length < 2) {
-    console.error('  Usage: npx tsx demo/live.ts compare <path1.json> <path2.json> [path3.json]');
+    console.error('  Usage: npx tsx .greenagent/live.ts compare <path1.json> <path2.json> [path3.json]');
     process.exit(1);
   }
 
@@ -914,7 +914,7 @@ async function main() {
   if (arg === 'apply') {
     const reportPath = process.argv[3];
     if (!reportPath) {
-      console.error('  Usage: npx tsx demo/live.ts apply <path-to-xray-report.md>');
+      console.error('  Usage: npx tsx .greenagent/live.ts apply <path-to-xray-report.md>');
       process.exit(1);
     }
     XRay.header('GreenAgent X-Ray — Apply Fixes');

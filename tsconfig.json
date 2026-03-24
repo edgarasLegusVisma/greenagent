@@ -9,6 +9,6 @@
     "outDir": "./dist",
     "rootDir": "."
   },
-  "include": ["src/**/*", "demo/**/*"],
-  "exclude": ["demo/intellidesk/**/*", "demo/output/**/*"]
+  "include": [".greenagent/src/**/*", ".greenagent/live.ts"],
+  "exclude": ["intellidesk/**/*", ".greenagent/output/**/*"]
 }

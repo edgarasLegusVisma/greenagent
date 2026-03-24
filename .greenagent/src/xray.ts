@@ -214,8 +214,6 @@ export class XRay {
     console.log(SEP);
 
     const usefulRatio = totalTokens > 0 ? (tokenCls.useful_work || 0) / totalTokens : 0;
-    const costCls = tracker.costByClassification();
-    const totalCost = Object.values(costCls).reduce((a, b) => a + b, 0);
     const usefulCostRatio = totalCost > 0 ? (costCls.useful_work || 0) / totalCost : 0;
     const highSev = suggestions.filter(s => s.severity === 'high').length;
 
@@ -397,9 +395,7 @@ export class XRay {
 
     // Sustainability Score
     const usefulRatio = totalTokens > 0 ? (tokenCls.useful_work || 0) / totalTokens : 0;
-    const costClsMd = tracker.costByClassification();
-    const totalCostMd = Object.values(costClsMd).reduce((a, b) => a + b, 0);
-    const usefulCostRatioMd = totalCostMd > 0 ? (costClsMd.useful_work || 0) / totalCostMd : 0;
+    const usefulCostRatio = totalCost > 0 ? (costCls.useful_work || 0) / totalCost : 0;
     const highSev = suggestions.filter(s => s.severity === 'high').length;
     let score: string;
     if (usefulRatio > 0.7 && highSev === 0) score = '🌿 Excellent';
@@ -408,7 +404,7 @@ export class XRay {
 
     lines.push('## Sustainability Score');
     lines.push('');
-    lines.push(`**${score}** (Useful work: ${Math.round(usefulRatio * 100)}% by tokens | ${Math.round(usefulCostRatioMd * 100)}% by cost | High-severity issues: ${highSev})`);
+    lines.push(`**${score}** (Useful work: ${Math.round(usefulRatio * 100)}% by tokens | ${Math.round(usefulCostRatio * 100)}% by cost | High-severity issues: ${highSev})`);
     lines.push('');
 
     return lines.join('\n');
