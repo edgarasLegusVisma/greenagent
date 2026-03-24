@@ -218,7 +218,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
     const savedCost    = (g.totalCost * (excessRounds / g.toolRounds)).toFixed(2);
     suggestions.push({
       severity: 'high',
-      title: `Planner used ${g.toolRounds} tool rounds to explore the codebase (${g.totalTokens.toLocaleString()} tokens) — see intellidesk/agents/planner.md`,
+      title: `Planner used ${g.toolRounds} tool rounds to explore the codebase (${g.totalTokens.toLocaleString()} tokens)`,
       detail:
         `The planner called tools ${g.toolRounds} times before producing the plan. ` +
         `For a feature addition, reading 5–6 key pattern files is enough to understand ` +
@@ -240,7 +240,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
   for (const g of readerGroups) {
     suggestions.push({
       severity: 'high',
-      title: `Code Reader re-read files the Planner already summarised (${g.totalTokens.toLocaleString()} tokens) — see intellidesk/agents/code-reader.md`,
+      title: `Code Reader re-read files the Planner already summarised (${g.totalTokens.toLocaleString()} tokens)`,
       detail:
         `The Code Reader ran ${g.toolRounds} tool rounds to read files even though it received ` +
         `the Planner's output. This is a lossy handoff — the Planner's text summary doesn't ` +
@@ -267,7 +267,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
   for (const g of architectGroups) {
     suggestions.push({
       severity: 'medium',
-      title: `Architect agent produced ${g.totalTokens.toLocaleString()} tokens of design that could be part of the implementation prompt — see intellidesk/agents/architect.md`,
+      title: `Architect agent produced ${g.totalTokens.toLocaleString()} tokens of design that could be part of the implementation prompt`,
       detail:
         `The Architect is a separate thinking step (${g.toolRounds} API round-trip${g.toolRounds > 1 ? 's' : ''}). ` +
         `Its output — class names, method signatures, file paths — is passed to the Backend Developer ` +
@@ -294,7 +294,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
   for (const g of rewriteGroups) {
     suggestions.push({
       severity: 'medium',
-      title: `Backend Developer (fixes) rewrote files after every review (${g.totalTokens.toLocaleString()} tokens) — see intellidesk/agents/backend-developer.md`,
+      title: `Backend Developer (fixes) rewrote files after every review (${g.totalTokens.toLocaleString()} tokens)`,
       detail:
         `A second implementation pass (${g.toolRounds} rounds) runs unconditionally after review. ` +
         `If the first pass scores 7+/10 or the reviewer signals "APPROVED", a full rewrite ` +
@@ -319,7 +319,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
     const labels      = distinctImplGroups.map(g => `"${g.baseNote.split(' ').slice(0, 3).join(' ')}..."`).join(' and ');
     suggestions.push({
       severity: 'medium',
-      title: `${distinctImplGroups.length} separate implementation agents (${totalTokens.toLocaleString()} tokens combined) — see intellidesk/agents/backend-developer.md`,
+      title: `${distinctImplGroups.length} separate implementation agents (${totalTokens.toLocaleString()} tokens combined)`,
       detail:
         `Implementation is split across ${distinctImplGroups.length} agents: ${labels}. ` +
         `Both agents receive the full design context and write code following the same patterns. ` +
@@ -342,7 +342,7 @@ export function generateSuggestions(tracker: GreenTracker): Suggestion[] {
     if (groups.indexOf(g) <= firstReflectionIdx) continue;
     suggestions.push({
       severity: 'medium',
-      title: `Quality Gate is redundant after Code Review (${g.totalTokens.toLocaleString()} tokens) — see intellidesk/agents/quality-gate.md`,
+      title: `Quality Gate is redundant after Code Review (${g.totalTokens.toLocaleString()} tokens)`,
       detail:
         `The Code Reviewer (step ${reflectionGroups[0].steps[0].stepNumber}) already validated ` +
         `the implementation for correctness and consistency. The Quality Gate adds ` +

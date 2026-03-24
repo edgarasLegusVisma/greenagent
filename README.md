@@ -136,11 +136,11 @@ and shows the sustainability cost of each. Requires `ANTHROPIC_API_KEY` in a `.e
 # 1. Baseline — one well-crafted prompt, no agents (~$0.09, ~50s)
 npx tsx .greenagent/live.ts single
 
-# 2. Standard multi-agent — 8 agents, all Sonnet, realistic orchestration (~$2.83, ~10 min)
+# 2. Standard multi-agent — 8 agents, all Sonnet, realistic orchestration (~$2.50, ~9 min)
 #    Watch the overhead pile up in real time
 npx tsx .greenagent/live.ts standard
 
-# 3. Apply the X-Ray's suggestions — run the optimized version (~$0.27, ~2.5 min)
+# 3. Apply the X-Ray's suggestions — run the optimized version (~$0.25, ~2.5 min)
 #    Same output, 10x cheaper, from architecture changes alone
 npx tsx .greenagent/live.ts apply ./.greenagent/output/standard/xray-report.md
 
@@ -162,15 +162,15 @@ your-project/
 └── package.json
 ```
 
-1. Install dependencies:
+1. Install dependencies (add to your project's `package.json`):
 ```bash
-pnpm install
+pnpm add @anthropic-ai/sdk dotenv
+pnpm add -D tsx typescript @types/node
 ```
 
 2. Add your API key:
 ```bash
-cp .env.example .env
-# Edit .env with your ANTHROPIC_API_KEY
+echo "ANTHROPIC_API_KEY=sk-ant-your-key-here" > .env
 ```
 
 3. Run the X-Ray on your codebase:

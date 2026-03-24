@@ -6,7 +6,7 @@
  *
  *   const tracker = new GreenTracker({ budgetLimitUsd: 1.00 });
  *
- *   tracker.startStep('planning', 'claude-3-5-haiku-20241022');
+ *   tracker.startStep('planning', 'claude-haiku-4-5-20251001');
  *   const response = await client.messages.create(...);
  *   tracker.recordStep(response, 'Planning with cheap model');
  *
@@ -40,8 +40,9 @@ const PRICING: Record<string, { input: number; output: number }> = {
 const CATEGORY_USEFUL = new Set(['execution', 'final_output']);
 const CATEGORY_OVERHEAD = new Set(['planning', 'routing', 'coordination', 'delegation']);
 const CATEGORY_WASTE = new Set(['reflection', 'retry', 'validation', 'loop']);
+const CATEGORY_META = new Set(['analysis']);
 
-export type StepClassification = 'useful_work' | 'overhead' | 'potential_waste' | 'other';
+export type StepClassification = 'useful_work' | 'overhead' | 'potential_waste' | 'analysis' | 'other';
 
 export interface Step {
   category: string;
@@ -205,7 +206,7 @@ export class GreenTracker {
 
   tokensByClassification(): Record<StepClassification, number> {
     const result: Record<StepClassification, number> = {
-      useful_work: 0, overhead: 0, potential_waste: 0, other: 0,
+      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, other: 0,
     };
     for (const s of this.steps) {
       result[s.classification] += s.totalTokens;
@@ -215,7 +216,7 @@ export class GreenTracker {
 
   costByClassification(): Record<StepClassification, number> {
     const result: Record<StepClassification, number> = {
-      useful_work: 0, overhead: 0, potential_waste: 0, other: 0,
+      useful_work: 0, overhead: 0, potential_waste: 0, analysis: 0, other: 0,
     };
     for (const s of this.steps) {
       result[s.classification] += s.costUsd;
@@ -295,6 +296,7 @@ export class GreenTracker {
     if (CATEGORY_USEFUL.has(category)) return 'useful_work';
     if (CATEGORY_OVERHEAD.has(category)) return 'overhead';
     if (CATEGORY_WASTE.has(category)) return 'potential_waste';
+    if (CATEGORY_META.has(category)) return 'analysis';
     return 'other';
   }
 
