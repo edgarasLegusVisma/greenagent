@@ -78,9 +78,10 @@ export async function runDynamicPipeline(
   haikuModel: string,
   sonnetModel: string,
   client: any,
+  outputSubdir: string = 'optimized',
 ): Promise<DemoResult> {
-  setCurrentSubdir('optimized');
-  cleanOutputDir('optimized');
+  setCurrentSubdir(outputSubdir);
+  cleanOutputDir(outputSubdir);
 
   const tracker = new GreenTracker({
     carbonRegion: 'eu_avg',
@@ -135,8 +136,8 @@ export async function runDynamicPipeline(
     }
   }
 
-  printGeneratedFiles('optimized');
-  const files = listOutputFiles('optimized');
+  printGeneratedFiles(outputSubdir);
+  const files = listOutputFiles(outputSubdir);
   const outputStr = `Files generated (${files.length}):\n${files.map(f => `  - ${f}`).join('\n')}`;
   return { tracker, output: outputStr };
 }

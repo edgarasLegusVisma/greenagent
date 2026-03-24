@@ -385,8 +385,32 @@ async function runApply(reportPath: string): Promise<void> {
 
   await analyzeAndReport(tracker, 'Optimized Multi-Agent (AI-generated pipeline)', 'optimized', 'Optimized Multi-Agent');
 
+  // ── Apply changes: write optimized agent configs back to the project ──
+  console.log();
+  console.log(`  ${GREEN_FG}${BOLD}📝 Updating agent configs in ${agentDir}/${RESET}`);
+
+  // Remove old agent md files
+  for (const f of agentFiles) {
+    fs.unlinkSync(path.join(agentDir, f));
+  }
+
+  // Write new agent md files from the pipeline config
+  for (const agent of config.agents) {
+    const filename = agent.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '') + '.md';
+    const filePath = path.join(agentDir, filename);
+    fs.writeFileSync(filePath, agent.prompt + '\n', 'utf-8');
+    console.log(`  ${GREEN_FG}✅${RESET} ${filename}`);
+  }
+
+  // Save pipeline config to the project so `standard` picks it up
+  const projectPipelinePath = path.join(CODEBASE_DIR, 'pipeline.json');
+  fs.writeFileSync(projectPipelinePath, JSON.stringify(config, null, 2), 'utf-8');
+  console.log(`  ${GREEN_FG}✅${RESET} pipeline.json`);
+
+  console.log();
   console.log(`  ${GREEN_FG}🔧 Pipeline config saved:${RESET}  ${configPath}`);
-  console.log(`  ${DIM}To inspect what the AI changed, see pipeline-config.json${RESET}`);
+  console.log(`  ${DIM}Agent configs updated. Run 'standard' to use the optimized agents.${RESET}`);
+  console.log(`  ${DIM}To revert: git checkout intellidesk/${RESET}`);
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -453,8 +477,19 @@ async function main() {
   }
 
   if (arg === 'standard') {
-    const { tracker } = await runStandardMultiAgent();
-    await analyzeAndReport(tracker, 'Approach 2: Standard Multi-Agent', 'standard', 'Standard Multi-Agent');
+    // If apply has been run, use the current pipeline config (agents may have changed)
+    const pipelinePath = path.join(CODEBASE_DIR, 'pipeline.json');
+    if (fs.existsSync(pipelinePath)) {
+      const config: PipelineConfig = JSON.parse(fs.readFileSync(pipelinePath, 'utf-8'));
+      console.log(`  ${DIM}Using pipeline config: ${config.agents.length} agents (from ${pipelinePath})${RESET}`);
+      console.log(`  ${DIM}To revert to original: git checkout intellidesk/${RESET}`);
+      console.log();
+      const { tracker } = await runDynamicPipeline(config, TASK, HAIKU, SONNET, client, 'standard');
+      await analyzeAndReport(tracker, 'Standard Multi-Agent', 'standard', 'Standard Multi-Agent');
+    } else {
+      const { tracker } = await runStandardMultiAgent();
+      await analyzeAndReport(tracker, 'Standard Multi-Agent', 'standard', 'Standard Multi-Agent');
+    }
     return;
   }
 
