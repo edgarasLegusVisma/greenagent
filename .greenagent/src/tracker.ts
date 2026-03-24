@@ -14,7 +14,7 @@
  */
 
 import { estimateEnergyWh, estimateCarbonMg } from './carbon.js';
-import { generateSuggestions, type Suggestion } from './suggestions.js';
+import type { Suggestion } from './suggestions.js';
 
 // ---------------------------------------------------------------------------
 // Anthropic pricing (USD per 1M tokens) — March 2026
@@ -233,7 +233,7 @@ export class GreenTracker {
   }
 
   getSuggestions(): Suggestion[] {
-    return this._overrideSuggestions ?? generateSuggestions(this);
+    return this._overrideSuggestions ?? [];
   }
 
   /**
