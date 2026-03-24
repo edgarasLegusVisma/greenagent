@@ -12,7 +12,6 @@ import type { DemoResult } from '../pipeline.js';
 
 export async function runSinglePrompt(
   task: string,
-  isCustomTask: boolean,
   client: any,
 ): Promise<DemoResult> {
   console.log(`\n  ${'='.repeat(60)}`);
@@ -24,13 +23,9 @@ export async function runSinglePrompt(
   cleanOutputDir('single');
   const tracker = new GreenTracker({ carbonRegion: DEFAULT_CARBON_REGION });
 
-  const userContent = isCustomTask
-    ? `${task}\n\nExplore the codebase to understand existing patterns and architecture, then implement the feature. Use write_file for each new file.`
-    : `${task}\n\nContext: IntelliDesk is a customer support platform built with .NET 8 backend (Clean Architecture with API/Application/Domain/Infrastructure layers) and Angular 18 frontend (standalone components). It uses dependency injection, async/await, and has existing AI services like SmartReplyService that use Claude API via a ClaudeApiClient wrapper.\n\nUse write_file for each new file.`;
+  const userContent = `${task}\n\nExplore the codebase to understand existing patterns and architecture, then implement the feature. Use write_file for each new file.`;
 
-  const systemPrompt = isCustomTask
-    ? 'You are a senior developer. Generate production-quality code following the existing codebase patterns. Use write_file for each file.'
-    : 'You are a senior .NET/Angular developer. Generate production-quality code following the existing codebase patterns. Use write_file for each file.';
+  const systemPrompt = 'You are a senior developer. Generate production-quality code following the existing codebase patterns. Use write_file for each file.';
 
   const messages: any[] = [{ role: 'user', content: userContent }];
 

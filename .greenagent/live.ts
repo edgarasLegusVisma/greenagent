@@ -8,7 +8,7 @@
  *   npx tsx .greenagent/live.ts compare <a> <b>    — side-by-side comparison
  *
  * Flags:
- *   --task "description"    — what to build (default: IntelliDesk KnowledgeBase)
+ *   --task "description"    — what to build (required for single/standard)
  *   --codebase ./path       — target codebase (default: auto-detected)
  */
 
@@ -21,7 +21,7 @@ import { fileURLToPath } from 'url';
 import {
   XRay, setToolContext,
   RESET, DIM,
-  SONNET, HAIKU, DEFAULT_TASK,
+  SONNET, HAIKU,
   runSinglePrompt, runStandard, runApply, runCompare,
   analyzeAndReport,
 } from './src/index.js';
@@ -52,8 +52,7 @@ function resolveCodebase(): string {
 const CODEBASE_DIR = resolveCodebase();
 setToolContext(CODEBASE_DIR, OUTPUT_DIR);
 
-const TASK = getFlag('task') || DEFAULT_TASK;
-const isCustomTask = !!getFlag('task');
+const TASK = getFlag('task') || '';
 
 // ─────────────────────────────────────────────────────────────────────
 // Main
@@ -86,8 +85,14 @@ async function main() {
   console.log(`  Codebase: ${CODEBASE_DIR}`);
   console.log();
 
+  if (!TASK && (arg === 'single' || arg === 'standard')) {
+    console.error('  --task is required. Example:');
+    console.error('  npx tsx .greenagent/live.ts standard --task "Add user authentication"');
+    process.exit(1);
+  }
+
   if (arg === 'single') {
-    const { tracker } = await runSinglePrompt(TASK, isCustomTask, client);
+    const { tracker } = await runSinglePrompt(TASK, client);
     await analyzeAndReport(tracker, 'Single Prompt', 'single', 'Single Prompt', client, SONNET);
     return;
   }

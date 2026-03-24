@@ -1,12 +1,21 @@
-# GreenAgent — Architecture Report
+# GreenAgent — Architecture & Project Guide
 
-## Overview
+## What Is This
 
-GreenAgent is an AI workflow sustainability tool that X-rays multi-agent pipelines. It wraps every LLM API call, tracks tokens/cost/carbon/latency per step, classifies each step (useful work vs overhead vs waste), and generates AI-powered optimization suggestions. It then applies those suggestions by dynamically generating and running an optimized pipeline.
+GreenAgent is an AI workflow sustainability tool. It X-rays multi-agent pipelines — tracking tokens, cost, energy, and carbon per step — then uses AI to classify each step, suggest optimizations, and dynamically generate an improved pipeline. The optimization is genuine: no hardcoded "optimized" function, the AI reads the diagnosis and redesigns the architecture.
 
-The project has two parts:
-1. **IntelliDesk** (`intellidesk/`) — a realistic .NET 8 + Angular 18 helpdesk application that serves as the target codebase agents work on
-2. **GreenAgent** (`.greenagent/`) — the X-Ray tool that instruments, analyzes, and optimizes agent workflows
+Built for the Visma AI Conference 2026 talk: *"One Prompt Was Bad Enough: Sustainability in the Age of Multi-Agent AI"*
+
+---
+
+## Talk Info
+
+- **Title:** "One Prompt Was Bad Enough: Sustainability in the Age of Multi-Agent AI"
+- **Conference:** Visma AI Conference 2026, March 24–26 (remote, ~300 attendees)
+- **Speaker:** Edgaras Legus, Visma Tech Lithuania
+- **Format:** Live demo / minimal slides
+- **Track:** AI-native Products
+- **Duration:** 45 minutes total (including Q&A)
 
 ---
 
@@ -14,328 +23,219 @@ The project has two parts:
 
 ```
 greenagent/
-├── .greenagent/                  ← THE TOOL
-│   ├── live.ts                   ← CLI orchestrator (521 lines)
-│   ├── output/                   ← Generated artifacts (gitignored)
-│   │   ├── single/               ← Single prompt results
-│   │   ├── standard/             ← Standard pipeline results
-│   │   └── optimized/            ← Optimized pipeline results
-│   └── src/                      ← GreenAgent library (11 files, 1444 lines)
-│       ├── index.ts              ← Re-exports all modules
-│       ├── tracker.ts            ← Core: token/cost/carbon tracking
-│       ├── xray.ts               ← Visualization: terminal + markdown reports
-│       ├── suggestions.ts        ← AI-powered suggestion analysis
-│       ├── carbon.ts             ← Carbon/energy estimation
-│       ├── pipeline.ts           ← Dynamic pipeline runner
-│       ├── runner.ts             ← Agent tool_use loop engine
-│       ├── tools.ts              ← Tool definitions + execution
-│       ├── helpers.ts            ← Output directory utilities
-│       └── colors.ts             ← ANSI color constants
+├── .greenagent/                        ← THE TOOL
+│   ├── live.ts                         ← CLI entry point (115 lines)
+│   ├── prompts/
+│   │   ├── greenagent.md               ← AI architect (wire + optimize pipelines)
+│   │   └── analysis.md                 ← AI diagnostician (classify steps + suggest)
+│   ├── src/
+│   │   ├── commands/
+│   │   │   ├── single.ts              ← single prompt approach (76 lines)
+│   │   │   ├── standard.ts            ← standard pipeline + generator (79 lines)
+│   │   │   ├── apply.ts              ← apply optimizations (164 lines)
+│   │   │   └── compare.ts            ← side-by-side comparison (30 lines)
+│   │   ├── config.ts                  ← all tunable values (22 lines)
+│   │   ├── tracker.ts                 ← core tracking engine (333 lines)
+│   │   ├── xray.ts                    ← terminal + markdown reports (428 lines)
+│   │   ├── suggestions.ts            ← AI-powered analysis (154 lines)
+│   │   ├── pipeline.ts               ← dynamic pipeline runner (104 lines)
+│   │   ├── runner.ts                  ← agent tool_use loop (109 lines)
+│   │   ├── tools.ts                   ← tool definitions + execution (142 lines)
+│   │   ├── helpers.ts                 ← shared utilities (102 lines)
+│   │   ├── carbon.ts                  ← energy/carbon estimation (77 lines)
+│   │   ├── colors.ts                  ← ANSI constants (13 lines)
+│   │   └── index.ts                   ← barrel exports (25 lines)
+│   └── output/                        ← generated artifacts (gitignored)
+│       ├── single/
+│       ├── standard/
+│       └── optimized/
 │
-├── intellidesk/                  ← THE PROJECT
-│   ├── agents/                   ← Agent system prompts (7 md files)
-│   ├── backend/                  ← .NET 8 Clean Architecture (48 files)
-│   └── frontend/                 ← Angular 18 standalone components (24 files)
+├── intellidesk/                        ← THE PROJECT (target codebase)
+│   ├── agents/                        ← agent system prompts (7 md files)
+│   │   ├── planner.md
+│   │   ├── code-reader.md
+│   │   ├── architect.md
+│   │   ├── backend-developer.md
+│   │   ├── code-reviewer.md
+│   │   ├── frontend-developer.md
+│   │   └── quality-gate.md
+│   ├── pipeline.json                  ← generated pipeline wiring (after first run)
+│   ├── backend/                       ← .NET 8 Clean Architecture (48 files)
+│   └── frontend/                      ← Angular 18 (24 files)
 │
-├── package.json                  ← Dependencies
-├── tsconfig.json                 ← TypeScript config
-├── README.md                     ← Public documentation
-├── LICENSE                       ← MIT
-├── .env.example                  ← API key template
-├── .env                          ← ANTHROPIC_API_KEY (gitignored)
-├── CLAUDE.md                     ← Living plan (gitignored from public repo)
-├── CONTEXT.md                    ← Background context (gitignored)
-└── TALK_PLAN.md                  ← Talk structure (gitignored)
+├── package.json
+├── tsconfig.json
+├── README.md
+├── LICENSE
+├── .env.example
+└── ARCHITECTURE.md                    ← this file
 ```
 
 ---
 
-## .greenagent/src/ — The Library
+## How It Works
 
-### tracker.ts (323 lines) — Core Tracking Engine
+### The Core Loop
 
-The heart of GreenAgent. `GreenTracker` wraps every LLM API call and records:
-
-- **Token counts** (input/output) from the API response `usage` object
-- **Cost** calculated from model-specific pricing tables (Sonnet $3/$15, Haiku $1/$5 per 1M tokens)
-- **Energy** estimated from tokens × energy-per-token (Google/IEA methodology)
-- **Carbon** from energy × regional grid intensity (supports eu_avg, nordics, lithuania, us_avg, etc.)
-- **Latency** via wall-clock `performance.now()`
-- **Classification** of each step: `useful_work`, `overhead`, `potential_waste`, `analysis`, or `other`
-
-**Key API:**
-```typescript
-tracker.startStep('planning', 'claude-sonnet-4-6');  // before API call
-tracker.recordStep(response, 'Explore project');      // after API call
-tracker.setSuggestions(suggestions, { tokens, costUsd }); // inject AI suggestions
-tracker.toJSON('label');    // serialize for saving
-GreenTracker.fromJSON(data); // deserialize for compare
+```
+standard → X-Ray diagnosis → apply → optimized pipeline → compare
 ```
 
-**Budget guardrails:** `budgetLimitUsd` and `maxIterations` throw `BudgetExceededError` when exceeded, stopping runaway agent loops.
+1. **`standard`** runs the project's agent pipeline, tracking every API call
+2. **AI analysis** classifies each step and suggests improvements
+3. **`apply`** feeds the diagnosis to GreenAgent, which redesigns the pipeline
+4. **The optimized pipeline** runs and produces the same output cheaper/faster
+5. **`compare`** shows before vs after side by side
 
-**Step classifications:**
-| Category | Classification | What it means |
-|----------|---------------|---------------|
-| execution, final_output | useful_work | Actual code generation |
-| planning, routing, coordination, delegation | overhead | Agents talking to each other |
-| reflection, retry, validation, loop | potential_waste | Review/retry cycles |
-| analysis | analysis (diagnosis) | GreenAgent's own analysis cost |
+### Two AI Brains
 
-### xray.ts (428 lines) — Visualization
+| File | Role | When it runs |
+|------|------|-------------|
+| `prompts/analysis.md` | **Diagnostician** — classifies steps (useful/overhead/waste) and suggests improvements | After every pipeline run |
+| `prompts/greenagent.md` | **Architect** — designs pipeline wiring from agent configs, or optimizes an existing pipeline | On first `standard` run + every `apply` |
 
-Renders the X-Ray report in two formats:
+GreenAgent operates in two modes:
+- **Initial wiring** (no X-Ray data): reads agent md files, determines execution order, tools, data flow, and produces `pipeline.json`
+- **Optimization** (X-Ray data provided): reads diagnosis + current configs, redesigns everything — merges agents, switches models, rewrites prompts, adds guardrails
 
-- **`XRay.report(tracker)`** — Rich terminal output with ANSI colors, bar charts, step-by-step detail, suggestions with severity icons, and sustainability score
-- **`XRay.reportToMarkdown(tracker)`** — Plain markdown for saving to xray-report.md
-- **`XRay.compare(trackers)`** — Side-by-side comparison table of multiple runs
-- **`XRay.stepLive(step)`** — Single-line step output during live runs
+### Dynamic Pipeline
 
-**Sustainability Score:**
-- 🌿 Excellent: >70% useful work tokens AND 0 high-severity issues
-- 🌱 Fair: >50% useful work AND ≤1 high-severity issue
-- 🔥 Needs Work: everything else
+There is no hardcoded pipeline. Both `standard` and `apply` use the same `runDynamicPipeline()` engine:
 
-Footer shows both token ratio and cost ratio: "Useful work: 35% by tokens | 41% by cost"
+1. First `standard` run → no `pipeline.json` → AI generates it from agent md files → cached
+2. Subsequent `standard` runs → loads cached `pipeline.json`
+3. `apply` → AI generates optimized `pipeline.json` → overwrites agent md files + cache
+4. `git checkout intellidesk/` → reverts everything → next `standard` regenerates from scratch
 
-### suggestions.ts (139 lines) — AI-Powered Analysis
+### Agent Configs Are System Prompts
 
-Sends the full step telemetry to Claude Sonnet and asks it to analyze the workflow like a senior engineer. No hardcoded pattern matching — works for any workflow.
+Each file in `intellidesk/agents/` IS the system prompt — the entire content gets sent to the API. No headers, no parsing. Like CLAUDE.md in Claude Code or .cursorrules in Cursor.
 
-**What it sends:** step number, category, model, input/output tokens, cost, latency, and the note describing what each step did, plus totals and classification breakdowns.
+The orchestrator (`runDynamicPipeline`) only passes data between agents — task description and outputs from previous agents. All behavioral instructions live in the md files.
 
-**What it gets back:** 4-8 specific suggestions with severity, title, detail, and estimated savings in tokens and dollars. Each suggestion references actual step numbers and agent names.
+### AI-Driven Step Classification
 
-**The analysis call itself** is tracked as category `analysis` so it appears transparently in the X-Ray as "Diagnosis" cost.
+Steps are NOT classified by hardcoded category labels. They start as `unclassified` and the AI analysis (`analysis.md`) classifies each one based on what actually happened:
 
-### carbon.ts (77 lines) — Environmental Impact
-
-Estimates energy and carbon from token counts:
-- **Energy:** `tokens × 0.00036 Wh/token` (derived from Google's ~0.3 Wh per prompt at ~850 tokens)
-- **Carbon:** `energy × grid_intensity × PUE(1.2)` using IEA regional data
-- **Water:** `tokens × 0.0005 mL/token`
-- **Relatable comparisons:** "≈ 751 Google searches", "≈ driving 469 meters"
-
-### pipeline.ts (150 lines) — Dynamic Pipeline Runner
-
-Runs any AI-generated pipeline configuration. This is what makes the `apply` command work.
-
-**Interfaces:**
-```typescript
-interface AgentConfig {
-  name: string;        // "EXPLORER"
-  icon: string;        // "🗺️"
-  category: string;    // "planning"
-  model: string;       // "haiku" or "sonnet"
-  tools: string[];     // ["list_files", "read_file"]
-  maxToolRounds: number;
-  maxTokens: number;
-  prompt: string;      // Full system prompt
-  inputFrom: string[]; // ["PLANNER"] — which agents' outputs to pass
-  note: string;        // Step log description
-}
-
-interface PipelineConfig {
-  budgetLimitUsd: number;
-  maxIterations: number;
-  agents: AgentConfig[];
-}
-```
-
-**`runDynamicPipeline(config)`:** Iterates through agents, builds user messages from `inputFrom` references, maps tool names to definitions, runs each agent via `runAgent()`, collects outputs. Catches `BudgetExceededError` gracefully.
-
-**`PIPELINE_OPTIMIZER_PROMPT`:** The system prompt sent to Sonnet when generating an optimized pipeline. Tells the AI what it can change (remove/combine agents, switch models, rewrite prompts, add constraints) and the exact JSON schema to output.
-
-### runner.ts (110 lines) — Agent Loop Engine
-
-The tool_use loop that powers every agent. `runAgent()`:
-
-1. Sends the system prompt + user message to the API
-2. If the response contains `tool_use` blocks, executes them via `executeTool()`
-3. Appends tool results and sends again
-4. Repeats until `stop_reason !== 'tool_use'` or `maxToolRounds` reached
-5. Returns the agent's final text output
-
-**Live terminal output:** Shows agent header with icon/name/model, live timer during API calls, step metrics after each response, tool activity log.
-
-### tools.ts (142 lines) — Tool Definitions & Execution
-
-Three tools available to agents:
-
-| Tool | What it does | Who uses it |
-|------|-------------|-------------|
-| `list_files` | Lists directory contents from IntelliDesk | Planner |
-| `read_file` | Reads source files from IntelliDesk | Code Reader |
-| `write_file` | Writes new files to `.greenagent/output/` | Backend Dev, Frontend Dev |
-
-**Key design:** `list_files` and `read_file` operate on `CODEBASE_DIR` (the target project). `write_file` operates on `OUTPUT_DIR` (the output folder). Agents can read the real codebase but write to a separate output directory — they never modify the original project.
-
-`setToolContext(codebaseDir, outputDir)` and `setCurrentSubdir(subdir)` configure the paths at startup.
-
-### helpers.ts (44 lines) — Output Utilities
-
-- `cleanOutputDir(subdir)` — removes and recreates output directory
-- `listOutputFiles(subdir)` — recursively lists all generated files
-- `printGeneratedFiles(subdir)` — prints file list with line counts
-
-### colors.ts (13 lines) — ANSI Constants
-
-Terminal color codes used across all modules: RESET, BOLD, DIM, CYAN_FG, GREEN_FG, YELLOW_FG, MAGENTA_FG, GRAY_FG, WHITE_FG.
-
-### index.ts (18 lines) — Re-exports
-
-Clean barrel file that re-exports everything from all modules so `live.ts` can do a single import.
+- A planning step that reads 3 key files efficiently → **useful_work**
+- A planning step that explores 72 files and accumulates 200k tokens → **overhead**
+- A review that catches a real bug → **useful_work**
+- A review that triggers 13 fix rounds for cosmetic issues → **potential_waste**
 
 ---
 
-## .greenagent/live.ts — The CLI Orchestrator (521 lines)
+## Module Reference
 
-The main entry point. Handles CLI routing and defines the approaches.
+### CLI & Commands
 
-### Config Section (~lines 1-85)
-- Parses `--task` and `--codebase` CLI flags
-- Resolves codebase path: `--codebase` flag → `../intellidesk/` → `../`
-- Sets up Anthropic client, model constants (SONNET, HAIKU)
-- `loadAgentConfig(name)` reads agent md files from `intellidesk/agents/`
+| File | Purpose |
+|------|---------|
+| `live.ts` | CLI entry point — parses flags, routes to commands (115 lines) |
+| `commands/single.ts` | Single prompt approach — one LLM call writes all files |
+| `commands/standard.ts` | Loads/generates pipeline.json, runs via dynamic engine |
+| `commands/apply.ts` | Reads X-Ray report, AI redesigns pipeline, runs it, writes new configs |
+| `commands/compare.ts` | Loads saved tracker data, renders side-by-side comparison |
 
-### Single Prompt (~lines 115-183)
-Direct API call with `write_file` tool, capped at 6 continuation rounds. No agent framework — just one LLM call that generates all files. The baseline for comparison.
+### Core Engine
 
-### Standard Multi-Agent (~lines 185-275)
-8 agents, all Sonnet, reading system prompts from `intellidesk/agents/*.md`:
+| File | Purpose |
+|------|---------|
+| `tracker.ts` | Wraps every API call — records tokens, cost, energy, carbon, latency per step |
+| `xray.ts` | Renders X-Ray reports — terminal (ANSI) and markdown, comparison tables |
+| `suggestions.ts` | Sends step telemetry to AI, gets classifications + optimization suggestions |
+| `pipeline.ts` | `runDynamicPipeline()` — runs any `PipelineConfig` using the agent loop engine |
+| `runner.ts` | `runAgent()` — the tool_use loop that powers every agent |
+| `tools.ts` | Tool definitions (list_files, read_file, write_file) and execution |
+| `carbon.ts` | Energy/carbon estimation from token counts (Google/IEA methodology) |
 
-```
-PLANNER (list_files, read_file) → plan text
-    ↓
-CODE READER (read_file) → code patterns
-    ↓
-ARCHITECT (no tools) → design spec
-    ↓
-BACKEND DEVELOPER (write_file) → backend files
-    ↓
-CODE REVIEWER (no tools) → review feedback
-    ↓
-BACKEND DEVELOPER fixes (write_file) → fixed files
-    ↓
-FRONTEND DEVELOPER (write_file) → frontend files
-    ↓
-QUALITY GATE (no tools) → pass/fail
-```
+### Config & Utilities
 
-**Data flow:** Each agent receives TEXT output from previous agents as its user message. The orchestrator passes only data — all behavioral instructions live in the md files. This is realistic multi-agent orchestration with lossy text handoffs.
-
-After pipeline.json exists (post-apply), `standard` uses `runDynamicPipeline()` with the updated config instead.
-
-### Apply Command (~lines 277-410)
-The core innovation. Flow:
-
-1. Read X-Ray report and extract suggestion titles
-2. Read all agent md files from `intellidesk/agents/`
-3. Build pipeline description dynamically from agent files
-4. Send everything to Sonnet with `PIPELINE_OPTIMIZER_PROMPT`
-5. Parse the JSON pipeline config response
-6. Display the optimized pipeline summary
-7. Run it via `runDynamicPipeline()`
-8. Save pipeline-config.json
-9. **Write new agent md files** back to `intellidesk/agents/`
-10. **Save pipeline.json** to `intellidesk/` so `standard` picks it up
-11. Run AI analysis and save X-Ray report
-
-### Compare Command (~lines 412-435)
-Loads saved tracker-data.json files, renders `XRay.compare()`. No API calls.
-
-### Main (~lines 437-505)
-CLI routing: `single | standard | apply | optimized | compare`. Shows usage if no command.
+| File | Purpose |
+|------|---------|
+| `config.ts` | All tunable values — models, limits, guardrails, token budgets |
+| `helpers.ts` | Shared utilities — analyzeAndReport, saveResults, readAgentConfigs, loadPrompt |
+| `colors.ts` | ANSI terminal color constants |
+| `index.ts` | Barrel re-exports for clean imports |
 
 ---
 
-## intellidesk/ — The Target Project
-
-### agents/ (7 files)
-
-Each file IS the system prompt — the entire content gets sent to the API as the agent's `system` parameter. No headers, no documentation, just plain-text instructions.
-
-| File | Role | Tools | Category |
-|------|------|-------|----------|
-| planner.md | Explore codebase, create implementation plan | list_files, read_file | planning |
-| code-reader.md | Read specific files, extract code patterns | read_file only | coordination |
-| architect.md | Design feature: classes, methods, file paths | none | coordination |
-| backend-developer.md | Write C# backend files | write_file | execution |
-| frontend-developer.md | Write Angular frontend files | write_file | execution |
-| code-reviewer.md | Review implementation against design | none | reflection |
-| quality-gate.md | Final pass/fail completeness check | none | validation |
-
-After `apply` runs, these files get overwritten with the AI-optimized versions. `git checkout intellidesk/agents/` reverts to originals.
-
-### backend/ (48 files)
-
-.NET 8 Clean Architecture helpdesk application:
-
-- **IntelliDesk.API/** — Controllers (6), Middleware (2), Program.cs, appsettings.json
-- **IntelliDesk.Application/** — Services (7), Interfaces (6), DTOs (5), Mappings (1)
-- **IntelliDesk.Domain/** — Entities (6), Enums (3), ValueObjects (1)
-- **IntelliDesk.Infrastructure/** — Repositories (2), Data/DbContext (1), Configurations (2), Migrations (1), External clients (3)
-
-AI services (SmartReplyService, PriorityDetectorService, etc.) use Claude API via ClaudeApiClient — realistic patterns for agents to follow.
-
-### frontend/ (24 files)
-
-Angular 18 standalone components:
-
-- **core/** — Services (3), Guards (1), Interceptors (1), Models (2)
-- **features/** — Tickets (6), Customers (2), Dashboard (2)
-- **shared/** — Components (2), Pipes (1)
-- **environments/** — Dev + Prod configs (2)
-
-Uses signals, `inject()`, functional guards, lazy routes — modern Angular patterns.
-
----
-
-## The Demo Flow
+## Run Commands
 
 ```bash
-# 1. Run the standard 8-agent pipeline (~$2.50, ~9 min)
-npx tsx .greenagent/live.ts standard
+# Run the standard agent pipeline
+npx tsx .greenagent/live.ts standard --task "Add a KnowledgeBase feature..."
 
-# 2. AI analyzes the X-Ray, generates optimized pipeline, runs it (~$0.60, ~4 min)
-npx tsx .greenagent/live.ts apply ./.greenagent/output/standard/xray-report.md
+# Apply X-Ray suggestions — AI redesigns + runs optimized pipeline
+npx tsx .greenagent/live.ts apply ./.greenagent/output/standard/xray-report.md --task "..."
 
-# 3. Compare side by side (no API calls)
+# Compare before/after (no API calls)
 npx tsx .greenagent/live.ts compare \
   ./.greenagent/output/standard/tracker-data.json \
   ./.greenagent/output/optimized/tracker-data.json
 
-# 4. Revert agent configs to original
+# Single prompt baseline
+npx tsx .greenagent/live.ts single --task "..."
+
+# Revert to original agent configs after apply
 git checkout intellidesk/
 ```
 
 ---
 
-## Key Design Decisions
+## Demo Results (March 25, 2026)
 
-| Decision | Choice | Why |
-|----------|--------|-----|
-| Agent configs as md files | Entire file = system prompt | Like CLAUDE.md in Claude Code — no parsing, no extraction |
-| Orchestrator is data-only | User messages contain zero instructions | All behavior in system prompts (md files or inline) |
-| AI generates optimizations | No hardcoded "optimized" function | Works for any codebase, any agent setup |
-| Apply writes back to project | New md files + pipeline.json | Running `standard` after apply uses optimized agents |
-| Separate read/write paths | Agents read from intellidesk/, write to .greenagent/output/ | Never modifies the original codebase |
-| Analysis tracked as "Diagnosis" | Separate classification with 🔬 icon | Meta-cost is transparent — audience sees what the X-Ray itself costs |
-| Budget guardrails | BudgetExceededError caught gracefully | Pipeline stops and saves partial results instead of crashing |
+| | Standard | Optimized (apply) |
+|---|---|---|
+| **Steps** | 55 | 30 |
+| **Tokens** | 626,056 | 96,579 |
+| **Cost** | $2.40 | $0.59 |
+| **Time** | 560s | 234s |
+| **Useful work** | 35% | 65% |
+
+**4x cost reduction** from AI-generated architectural changes — not model swaps.
 
 ---
 
-## Output Artifacts
+## Key Architectural Decisions
 
-Each approach saves to `.greenagent/output/{approach}/`:
+| Decision | Choice | Why |
+|----------|--------|-----|
+| Agent configs as md files | Entire file = system prompt | No parsing — like CLAUDE.md |
+| AI classifies steps | No hardcoded categories | Classification based on behavior, not labels |
+| AI generates pipelines | No hardcoded orchestration | Works for any number/type of agents |
+| AI optimizes pipelines | No pre-built "optimized" function | Genuine optimization from diagnosis |
+| Task as CLI parameter | `--task` flag, no default | Tool is fully generic, not IntelliDesk-specific |
+| Two AI brains | analysis.md + greenagent.md | Diagnosis and architecture are separate concerns |
+| Prompts as files | `.greenagent/prompts/` | Not hardcoded in TypeScript |
+| Config centralized | `src/config.ts` | One place to tune models, limits, budgets |
+| Commands as modules | `src/commands/` | Each command is self-contained |
+| Zero frameworks | Raw Anthropic SDK | Framework-agnostic message |
 
-| File | Purpose |
-|------|---------|
-| `xray-report.md` | Full markdown X-Ray report |
-| `tracker-data.json` | Serialized tracker for offline comparison |
-| `pipeline-config.json` | AI-generated pipeline config (optimized only) |
-| `backend/**/*.cs` | Generated C# files |
-| `frontend/**/*.ts` | Generated Angular files |
+---
+
+## Talk Structure
+
+1. **Part 1** (4 min): Callback to 2025 talk — 0.3Wh per prompt. "That was ONE prompt."
+2. **Part 2** (2-3 min): Agent era stats — $8.5B market, 40% cancellation risk, inference = 60-70% of AI energy
+3. **Part 3** (22-23 min): Live demo
+   - Show the agent configs (md files = system prompts)
+   - Run standard — watch the overhead pile up
+   - Run apply — AI redesigns the pipeline in real time
+   - Compare — side-by-side savings
+4. **Part 4** (10 min): Quick wins + GreenAgent take-home, GitHub QR
+5. **Part 5** (4 min): Q&A
+
+**TIMING:** Standard takes ~9 min live. Pre-run before the talk and use saved data, or run live for dramatic effect.
+
+---
+
+## Key Quotes
+
+- "The agent tax — tokens spent not on useful work, but on agents talking to each other"
+- "I'm not against multi-agent AI. I'm against blind multi-agent AI"
+- "You can't optimize what you can't see"
+- "Same task, same output. The only difference is architecture. And it costs 4x more."
+- "Sustainability and unit economics are the same problem — every wasted token is both CO₂ and money"
 
 ---
 
@@ -343,12 +243,17 @@ Each approach saves to `.greenagent/output/{approach}/`:
 
 ```json
 {
-  "@anthropic-ai/sdk": "^0.39.0",   // Claude API client
-  "dotenv": "^17.3.1",              // .env loading
-  "tsx": "^4.19.0",                 // TypeScript execution (dev)
-  "typescript": "^5.7.0",           // Type checking (dev)
-  "@types/node": "^25.5.0"          // Node.js types (dev)
+  "@anthropic-ai/sdk": "^0.39.0",
+  "dotenv": "^17.3.1",
+  "tsx": "^4.19.0",
+  "typescript": "^5.7.0",
+  "@types/node": "^25.5.0"
 }
 ```
 
-Zero frameworks. Raw Anthropic SDK. Framework-agnostic message.
+## Pricing Reference
+
+| Model | Input (per 1M) | Output (per 1M) |
+|-------|---------------|----------------|
+| `claude-sonnet-4-6` | $3.00 | $15.00 |
+| `claude-haiku-4-5-20251001` | $1.00 | $5.00 |
