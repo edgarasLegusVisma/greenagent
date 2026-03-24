@@ -45,7 +45,7 @@ export function estimateWaterMl(totalTokens: number): number {
   return totalTokens * WATER_PER_TOKEN_ML;
 }
 
-// Comparisons for making numbers relatable
+
 const COMPARISONS = {
   smartphoneChargeWh: 14.0,
   googleSearchWh:     0.3,
